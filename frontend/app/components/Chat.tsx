@@ -5,8 +5,8 @@ import { useRef, useState, type FormEvent } from "react";
 import type { ChatMessage, ChatResponse, ToolCall } from "../types";
 import ToolCallChip from "./ToolCallChip";
 import MarkdownMessage from "./MarkdownMessage";
-import IntroScreen from "./IntroScreen";
-import AddressScreen from "./AddressScreen";
+import Homepage from "./Homepage";
+import { useCrossfade } from "../hooks/useCrossfade";
 import type { MapPoint } from "./AddressMap";
 
 // Leaflet touches window/document at import time — must not run during SSR.
@@ -14,7 +14,7 @@ const AddressMap = dynamic(() => import("./AddressMap"), { ssr: false });
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-type Stage = "intro" | "address" | "chat";
+type Stage = "landing" | "chat";
 
 const SINGLE_ADDRESS_HAZARD_TOOLS = new Set([
   "check_insurability",
@@ -49,23 +49,12 @@ function parcelBoundaryFor(toolCalls?: ToolCall[]): string | null {
 }
 
 export default function Chat() {
-  const [stage, setStage] = useState<Stage>("intro");
-  const [visible, setVisible] = useState(true);
+  const { stage, visible, transitionTo } = useCrossfade<Stage>("landing");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sessionId = useRef<string | undefined>(undefined);
-
-  function transitionTo(next: Stage) {
-    setVisible(false);
-    window.setTimeout(() => {
-      setStage(next);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setVisible(true));
-      });
-    }, 200);
-  }
 
   async function send(text: string) {
     const trimmed = text.trim();
@@ -124,16 +113,7 @@ export default function Chat() {
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
       }`}
     >
-      {stage === "intro" && (
-        <IntroScreen onStart={() => transitionTo("address")} />
-      )}
-
-      {stage === "address" && (
-        <AddressScreen
-          onSubmit={handleAddressSubmit}
-          onBack={() => transitionTo("intro")}
-        />
-      )}
+      {stage === "landing" && <Homepage onSubmitAddress={handleAddressSubmit} />}
 
       {stage === "chat" && (
         <div className="flex h-dvh flex-col bg-zinc-50 dark:bg-black">
