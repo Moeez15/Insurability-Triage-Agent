@@ -1,0 +1,21 @@
+# Common, real FEMA-documented flood mitigation actions and their typical
+# cost ranges. Not a regulatory enumeration the way Safer From Wildfires
+# is (no CA-style statute lists these) — approximate, commonly-cited
+# figures, same disclaimer posture as mitigation_costs.yaml.
+actions:
+  - id: elevate_utilities
+    name: Elevate utilities/mechanicals above Base Flood Elevation
+    est_cost_usd: [5000, 20000]
+    note: Cuts the most common source of flood-damage claims (HVAC, water heater, electrical panel).
+  - id: flood_vents
+    name: Install FEMA-compliant flood vents/openings
+    est_cost_usd: [1000, 5000]
+    note: Required for enclosed areas below Base Flood Elevation to relieve hydrostatic pressure.
+  - id: elevation_certificate
+    name: Obtain a FEMA Elevation Certificate
+    est_cost_usd: [500, 1500]
+    note: Documents actual lowest-floor elevation — can lower an NFIP premium if the property sits above BFE.
+  - id: full_elevation
+    name: Elevate the structure above Base Flood Elevation
+    est_cost_usd: [50000, 150000]
+    note: The most effective mitigation available; substantial cost, typically pursued for repetitive-loss properties.

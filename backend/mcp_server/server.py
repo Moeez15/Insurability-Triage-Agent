@@ -1,9 +1,16 @@
-"""MCP server exposing `check_insurability` as a plain MCP tool.
+"""MCP server exposing multi-hazard property risk tools.
+
+Each hazard (wildfire, flood, earthquake) is its own sub-agent: an
+independent (Mireye preset, deterministic rule table, mitigation list)
+triple sharing one fetch -> score -> enrich -> narrate pipeline. Adding a
+hazard means adding one entry to _HAZARD_PRESETS and a scorer/*_rule_table
+module, not touching the others. full_risk_report is the one tool that
+orchestrates all three; every other tool calls exactly one sub-agent.
 
 No custom agent-loop framework (Premise 8) — whatever MCP host is
 connected (Claude Desktop, Claude Code, etc.) already handles multi-turn
-conversation and re-invokes this tool with follow-up `overrides` when a
-user asks a hypothetical like "what if I clear the brush?".
+conversation and re-invokes check_insurability with follow-up `overrides`
+when a user asks a hypothetical like "what if I clear the brush?".
 """
 
 from __future__ import annotations
@@ -30,18 +37,29 @@ from mireye_client.client import (  # noqa: E402
     MireyeUnconfiguredError,
 )
 from mcp_server.narrate import narrate  # noqa: E402
-from scorer.score import score  # noqa: E402
+from scorer.score import score, score_earthquake, score_flood  # noqa: E402
 
 _CITY_STATE_RE = re.compile(r",\s*([A-Za-z .]+),\s*([A-Z]{2})(?:\s+\d{5}(?:-\d{4})?)?\s*$")
 
 DEMO_CACHE_PATH = Path(__file__).resolve().parent.parent / "data" / "demo_cache.json"
 
+# Each hazard "sub-agent" is a (Mireye preset, deterministic scorer) pair —
+# same fetch -> score -> narrate pipeline as wildfire, just pointed at a
+# different Mireye preset and rule table. Adding a hazard means adding one
+# entry here plus a scorer/*_rule_table.py, not touching the pipeline.
+_HAZARD_PRESETS: dict[str, tuple[str, Any]] = {
+    "wildfire": ("wildfire_underwrite", score),
+    "flood": ("flood_risk", score_flood),
+    "earthquake": ("natural_hazard", score_earthquake),
+}
+
 mcp = MCPServer(
     name="insurability-triage",
     version="0.1.0",
     description=(
-        "Wildfire insurability triage for a California address — verdict, "
-        "driving factors, and a ranked Safer From Wildfires mitigation list. "
+        "Multi-hazard property risk triage for a US address — wildfire "
+        "(California), flood (FEMA SFHA), and earthquake (USGS/ASCE seismic "
+        "design category) verdicts, driving factors, and mitigation lists. "
         "Heuristic, not an actuarial or underwriting determination."
     ),
 )
@@ -91,20 +109,21 @@ def _fire_station_drive_time(client: MireyeClient, address: str) -> dict | None:
     }
 
 
-def _resolve_and_fetch(address: str) -> tuple[dict, str, float | None, float | None]:
+def _resolve_and_fetch(
+    address: str, preset: str = "wildfire_underwrite"
+) -> tuple[dict, str, float | None, float | None]:
     """Try the live Mireye API; fall back to the demo cache on failure.
 
-    Returns (fetch_response, source, lat, lng) where source is "live" or
-    "demo_cache". lat/lng are None only if geocoding itself failed (caller
-    doesn't reach this far in that case — see the AddressTooCoarseError /
-    AddressNotFoundError branches in _tool_check_insurability).
+    `preset` selects which Mireye /v1/fetch preset to pull — one per hazard
+    sub-agent (see _HAZARD_PRESETS). Returns (fetch_response, source, lat,
+    lng) where source is "live" or "demo_cache". lat/lng are None only if
+    geocoding itself failed (caller doesn't reach this far in that case —
+    see the AddressTooCoarseError / AddressNotFoundError branches below).
     """
     try:
         with MireyeClient() as client:
             geo = client.geocode(address)
-            fetch_response = client.fetch_with_retry(
-                geo.lat, geo.lng, preset="wildfire_underwrite"
-            )
+            fetch_response = client.fetch_with_retry(geo.lat, geo.lng, preset=preset)
             return fetch_response, "live", geo.lat, geo.lng
     except AddressTooCoarseError:
         raise
@@ -115,12 +134,21 @@ def _resolve_and_fetch(address: str) -> tuple[dict, str, float | None, float | N
         cached = cache.get(address)
         if cached:
             cached_geo = cached.get("geocode", {})
-            return (
-                cached["fetch"],
-                "demo_cache",
-                cached_geo.get("lat"),
-                cached_geo.get("lng"),
+            # "fetch" (no suffix) is the legacy key for the wildfire preset,
+            # kept as-is for backward compatibility; other presets live
+            # under fetch_by_preset.
+            cached_fetch = (
+                cached["fetch"]
+                if preset == "wildfire_underwrite"
+                else cached.get("fetch_by_preset", {}).get(preset)
             )
+            if cached_fetch:
+                return (
+                    cached_fetch,
+                    "demo_cache",
+                    cached_geo.get("lat"),
+                    cached_geo.get("lng"),
+                )
         raise
 
 
@@ -133,7 +161,9 @@ def _tool_check_insurability(
     off so a 6-address batch doesn't make 5x the API calls it needs to
     just produce a ranking."""
     try:
-        fetch_response, source, lat, lng = _resolve_and_fetch(address)
+        fetch_response, source, lat, lng = _resolve_and_fetch(
+            address, preset="wildfire_underwrite"
+        )
     except AddressTooCoarseError:
         return {
             "address": address,
@@ -247,6 +277,128 @@ def check_insurability(address: str, overrides: dict[str, Any] | None = None) ->
     return _tool_check_insurability(address, overrides)
 
 
+def _empty_check_result(address: str, disclaimer: str, narration: str) -> dict:
+    """Shared shape for the address-resolution failure branches (too
+    coarse, not found, Mireye unavailable) across all hazard sub-agents."""
+    return {
+        "address": address,
+        "verdict": "low_confidence",
+        "driving_factors": [],
+        "mitigations": [],
+        "data_sources": [],
+        "missing_inputs": ["address"],
+        "disclaimer": disclaimer,
+        "narration": narration,
+        "lat": None,
+        "lng": None,
+        "parcel_boundary_geojson": None,
+        "parcel_apn": None,
+    }
+
+
+def _tool_check_hazard(address: str, hazard: str, _enrich: bool = True) -> dict:
+    """Shared fetch -> score -> enrich -> narrate pipeline for the flood
+    and earthquake sub-agents. check_insurability (wildfire) keeps its own
+    version above since it additionally supports counterfactual overrides
+    and fire-station drive time, which the other two hazards don't have."""
+    preset, scorer = _HAZARD_PRESETS[hazard]
+    try:
+        fetch_response, source, lat, lng = _resolve_and_fetch(address, preset=preset)
+    except AddressTooCoarseError:
+        return _empty_check_result(
+            address,
+            "Address only resolves to a coarse (ZIP/city/county) centroid, "
+            "not a specific parcel — provide a more precise street address.",
+            "This address is too coarse to place on a specific parcel.",
+        )
+    except AddressNotFoundError:
+        return _empty_check_result(
+            address,
+            "Address could not be resolved to a location.",
+            "This address could not be found.",
+        )
+    except MireyeError as exc:
+        return _empty_check_result(
+            address,
+            f"Mireye lookup failed and no demo-cache fallback matched: {exc}",
+            "Live data is unavailable for this address right now.",
+        )
+
+    result = scorer(fetch_response)
+    result["data_source_mode"] = source
+    result["address"] = address
+    result["lat"] = lat
+    result["lng"] = lng
+    result["parcel_boundary_geojson"] = None
+    result["parcel_apn"] = None
+
+    if _enrich and source == "live":
+        # Same enrichment-must-degrade-not-destroy contract as
+        # check_insurability above.
+        try:
+            with MireyeClient() as client:
+                parcel = client.lookup_parcel(address)
+                if parcel:
+                    result["parcel_boundary_geojson"] = parcel.get("geometry")
+                    result["parcel_apn"] = parcel.get("apn")
+        except Exception:  # noqa: BLE001
+            pass
+
+    result["narration"] = narrate(result)
+    return result
+
+
+def _tool_check_flood_risk(address: str, _enrich: bool = True) -> dict:
+    """Flood insurability triage for a US street address — verdict driven
+    by whether the parcel sits inside a FEMA Special Flood Hazard Area,
+    the National Flood Insurance Program's mandatory-purchase trigger."""
+    return _tool_check_hazard(address, "flood", _enrich=_enrich)
+
+
+def _tool_check_earthquake_risk(address: str, _enrich: bool = True) -> dict:
+    """Earthquake insurability triage for a US street address — verdict
+    driven by ASCE 7-22 Seismic Design Category at the parcel."""
+    return _tool_check_hazard(address, "earthquake", _enrich=_enrich)
+
+
+@mcp.tool()
+def check_flood_risk(address: str) -> dict:
+    """Flood insurability triage for a single US street address.
+
+    Args:
+        address: A US street address, e.g. "100 Ocean Dr, Miami Beach, FL 33139".
+
+    Returns:
+        address, lat, lng, verdict, driving_factors, a ranked flood-
+        mitigation list with cost ranges, data_sources, missing_inputs,
+        disclaimer, a plain-English narration, and parcel_boundary_geojson
+        + parcel_apn for mapping. Verdict is driven by whether the parcel
+        is inside a FEMA Special Flood Hazard Area (SFHA) — the NFIP's
+        mandatory flood-insurance-purchase trigger for federally-backed
+        mortgages, not a California-only concept.
+    """
+    return _tool_check_flood_risk(address)
+
+
+@mcp.tool()
+def check_earthquake_risk(address: str) -> dict:
+    """Earthquake insurability triage for a single US street address.
+
+    Args:
+        address: A US street address, e.g. "100 Ocean Dr, Miami Beach, FL 33139".
+
+    Returns:
+        address, lat, lng, verdict, driving_factors, a ranked seismic-
+        retrofit mitigation list with cost ranges, data_sources,
+        missing_inputs, disclaimer, a plain-English narration, and
+        parcel_boundary_geojson + parcel_apn for mapping. Verdict is
+        driven by ASCE 7-22 Seismic Design Category (A-F) at the parcel —
+        a building-code classification, not an insurance-purchase mandate
+        (California has no legal requirement to carry earthquake coverage).
+    """
+    return _tool_check_earthquake_risk(address)
+
+
 # Verdict severity, most to least concerning — drives compare_addresses'
 # ranking. out_of_scope/low_confidence aren't "low risk", they're "no
 # answer" — sorted last, not treated as good news.
@@ -332,12 +484,88 @@ def compare_addresses(addresses: list[str]) -> dict:
     return _tool_compare_addresses(addresses)
 
 
+def _tool_full_risk_report(address: str) -> dict:
+    """Runs all three hazard sub-agents (wildfire, flood, earthquake) for
+    one address and combines them into a single report. Each sub-agent
+    keeps its own independent deterministic scorer and rule table — this
+    function only orchestrates and picks the overall verdict, it never
+    re-derives or overrides a per-hazard verdict itself."""
+    wildfire = _tool_check_insurability(address, _enrich=False)
+    flood = _tool_check_flood_risk(address, _enrich=False)
+    earthquake = _tool_check_earthquake_risk(address, _enrich=False)
+
+    per_hazard = [
+        {
+            "hazard": hazard,
+            "verdict": r["verdict"],
+            "top_driving_factor": r["driving_factors"][0] if r["driving_factors"] else None,
+            "narration": r.get("narration"),
+        }
+        for hazard, r in (("wildfire", wildfire), ("flood", flood), ("earthquake", earthquake))
+    ]
+
+    # Overall verdict is the single worst real per-hazard verdict — the
+    # most concerning hazard drives insurability, not an average across
+    # three unrelated risk models. low_confidence/out_of_scope hazards are
+    # excluded from that comparison (they're "no answer", not "good news"
+    # — same reasoning _VERDICT_SEVERITY already encodes for compare_addresses).
+    real_verdicts = [
+        h["verdict"] for h in per_hazard if h["verdict"] not in ("low_confidence", "out_of_scope")
+    ]
+    overall_verdict = (
+        min(real_verdicts, key=lambda v: _VERDICT_SEVERITY.get(v, 99))
+        if real_verdicts
+        else "low_confidence"
+    )
+
+    concerning = [h["hazard"] for h in per_hazard if h["verdict"] in ("likely_hard_to_place", "harder_to_place")]
+    summary = (
+        f"{', '.join(concerning) or 'no hazard'} driving the overall verdict "
+        f"({overall_verdict.replace('_', ' ')})"
+    )
+
+    return {
+        "address": address,
+        "lat": wildfire.get("lat"),
+        "lng": wildfire.get("lng"),
+        "overall_verdict": overall_verdict,
+        "hazards": per_hazard,
+        "summary": summary,
+        "disclaimer": (
+            "Heuristic verdicts from three independent public-data sub-agents "
+            "(wildfire, flood, earthquake) — not actuarial or underwriting "
+            "determinations. Not a guarantee of insurability, non-renewal, or pricing."
+        ),
+    }
+
+
+@mcp.tool()
+def full_risk_report(address: str) -> dict:
+    """Combined multi-hazard property risk report for a single US street
+    address — runs the wildfire, flood, and earthquake sub-agents and
+    returns one overall verdict plus each hazard's own verdict and top
+    driving factor. Use this instead of calling check_insurability,
+    check_flood_risk, and check_earthquake_risk separately when the user
+    wants the full picture on a property rather than one specific hazard.
+
+    Args:
+        address: A US street address.
+
+    Returns:
+        address, lat, lng, overall_verdict (the worst of the three
+        per-hazard verdicts), hazards (one entry per hazard: verdict, top
+        driving factor, narration), summary, and a disclaimer.
+    """
+    return _tool_full_risk_report(address)
+
+
 def _tool_ask_about_location(address: str, question: str) -> dict:
-    """Answers a question about a location that's OUTSIDE what the
-    insurability scorer covers (schools, demographics, flood zone detail,
-    etc.) via Mireye's /v1/ask. Deliberately separate from
-    check_insurability/compare_addresses: this answer must never feed the
-    verdict — it has its own citations/confidence, not the scorer's."""
+    """Answers a question about a location that's OUTSIDE what the three
+    hazard scorers cover (schools, demographics, nearby amenities, etc.)
+    via Mireye's /v1/ask. Deliberately separate from
+    check_insurability/check_flood_risk/check_earthquake_risk/
+    compare_addresses/full_risk_report: this answer must never feed a
+    verdict — it has its own citations/confidence, not a scorer's."""
     try:
         with MireyeClient() as client:
             result = client.ask(address, question)
@@ -362,12 +590,13 @@ def _tool_ask_about_location(address: str, question: str) -> dict:
 
 @mcp.tool()
 def ask_about_location(address: str, question: str) -> dict:
-    """Answers an open-ended question about a California address that is
-    NOT about wildfire insurability risk (e.g. schools, demographics,
-    flood zone detail, nearby amenities). Do not use this for anything
-    that should inform an insurability verdict — use check_insurability
-    or compare_addresses for that; this tool's answer is separate,
-    citation-backed context, never a scoring input.
+    """Answers an open-ended question about a US address that is NOT about
+    wildfire, flood, or earthquake insurability risk (e.g. schools,
+    demographics, nearby amenities). Do not use this for anything that
+    should inform a hazard verdict — use check_insurability,
+    check_flood_risk, check_earthquake_risk, or full_risk_report for that;
+    this tool's answer is separate, citation-backed context, never a
+    scoring input.
 
     Args:
         address: A US street address.

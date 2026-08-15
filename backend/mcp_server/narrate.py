@@ -13,9 +13,14 @@ from __future__ import annotations
 import json
 import os
 
-SYSTEM_PROMPT = """You narrate a wildfire-insurability verdict for a real estate \
-agent or title company. You are given a JSON object with a verdict, driving \
-factors, and a mitigation list — narrate it in 3-5 plain-English sentences.
+SYSTEM_PROMPT = """You narrate a property-hazard insurability verdict for a real \
+estate agent or title company. You are given a JSON object with a verdict, \
+driving factors, and a mitigation list — narrate it in 3-5 plain-English \
+sentences. The specific hazard (wildfire, flood, earthquake, etc.) is never \
+named directly in the JSON's own field names, so infer it ONLY from what the \
+driving_factors and disclaimer actually say (e.g. "Fire Hazard Severity Zone" \
+means wildfire, "Special Flood Hazard Area" means flood, "Seismic Design \
+Category" means earthquake) — never default to or assume wildfire.
 
 Rules, no exceptions:
 - Only reference facts present in the JSON. Never invent a risk factor, \

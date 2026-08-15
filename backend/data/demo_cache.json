@@ -1,5 +1,5 @@
 {
-  "_comment": "Pre-fetched, live-verified responses for demo-day fallback if the live Mireye API is slow/down when a judge types an address (cross-model tension 4). Captured 2026-08-14 during /plan-eng-review.",
+  "_comment": "Pre-fetched, live-verified responses for demo-day fallback if the live Mireye API is slow/down when a judge types an address (cross-model tension 4). Wildfire (fetch key) captured 2026-08-14 during /plan-eng-review; flood/earthquake (fetch_by_preset key) captured 2026-08-15 when the multi-hazard sub-agents were added.",
   "5555 Skyway, Paradise, CA 95969": {
     "geocode": {
       "lat": 39.749521,
@@ -77,6 +77,418 @@
         }
       },
       "partial_failures": []
+    },
+    "fetch_by_preset": {
+      "flood_risk": {
+        "lat": 39.749521,
+        "lng": -121.63408,
+        "fetched_at": "2026-08-15T21:54:23.233363+00:00",
+        "fields": {
+          "elevation": {
+            "value": 492.79522705078125,
+            "unit": "meters",
+            "source": "USGS_3DEP_COG",
+            "source_url": "https://www.usgs.gov/3d-elevation-program",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:38.152758+00:00",
+            "dataset_vintage": "3DEP 1/3 arc-second seamless DEM",
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "coast_distance_m": {
+            "value": 60863.461105871116,
+            "unit": "meters",
+            "source": "NOAA_CUSP",
+            "source_url": "https://shoreline.noaa.gov/data/datasheets/cusp.html",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T00:05:05.683979+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "within_floodplain_polygon": {
+            "value": false,
+            "unit": null,
+            "source": "FEMA_NFHL",
+            "source_url": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:38:05.067772+00:00",
+            "dataset_vintage": "06007C_FIRM1",
+            "ttl_seconds": 2592000,
+            "notes": "FEMA NFHL Flood Hazard Zones intersect, but not an SFHA: Zone X; AREA OF MINIMAL FLOOD HAZARD; SFHA_TF=F; FLD_AR_ID=06007C_497; SOURCE_CIT=06007C_FIRM1.",
+            "status": "ok"
+          },
+          "intersects_nhd_area": {
+            "value": false,
+            "unit": null,
+            "source": "USGS_NHDPLUS_HR",
+            "source_url": "https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer/8/query?f=json&outFields=%2A&returnGeometry=true&geometry=-121.63408%2C39.749521&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&resultRecordCount=1",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:37:43.798224+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": "No NHDPlus HR NHDArea polygon intersects this coordinate. This does not rule out FEMA NFHL flood-hazard coverage.",
+            "status": "ok"
+          },
+          "intersects_wetland": {
+            "value": false,
+            "unit": null,
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:37:43.213234+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "wetland_type": {
+            "value": "Palustrine Emergent Persistent Temporarily Flooded",
+            "unit": null,
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:37:43.213294+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "wetland_subtype": {
+            "value": "PEM1A",
+            "unit": null,
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:37:43.213303+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "wetland_acres": {
+            "value": 0.19125083186125236,
+            "unit": "acre",
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:37:43.213312+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "nearest_wetland_distance_m": {
+            "value": 162.18707205142815,
+            "unit": "m",
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:37:43.213320+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "wetlands_within_100m_count": {
+            "value": 0,
+            "unit": null,
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:37:43.213327+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "wetlands_within_500m_count": {
+            "value": 5,
+            "unit": null,
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:37:43.213335+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "surface_water_permanence_pct": {
+            "value": 0.0,
+            "unit": "percent",
+            "source": "JRC_GSW",
+            "source_url": "https://global-surface-water.appspot.com/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:37:41.785096+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 2592000,
+            "notes": null,
+            "status": "ok"
+          },
+          "nearest_waterbody_name": {
+            "value": null,
+            "unit": null,
+            "source": "USGS_NHDPLUS_HR",
+            "source_url": "https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer/9/query?f=json&outFields=%2A&returnGeometry=true&geometry=-121.63408%2C39.749521&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=5000&units=esriSRUnit_Meter&outSR=4326&orderByFields=OBJECTID&resultRecordCount=200&resultOffset=0",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:37:43.798348+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": "Nearest NHDPlus waterbody has no GNIS/name attribute.",
+            "status": "absent"
+          }
+        },
+        "partial_failures": [],
+        "resolved_location": {
+          "lat": 39.749521,
+          "lng": -121.63408,
+          "source": "coordinate"
+        }
+      },
+      "natural_hazard": {
+        "lat": 39.749521,
+        "lng": -121.63408,
+        "fetched_at": "2026-08-15T21:54:23.561005+00:00",
+        "fields": {
+          "seismic_pga_2pct_50yr_g": {
+            "value": 0.375,
+            "unit": "g",
+            "source": "USGS_NSHM",
+            "source_url": "https://www.sciencebase.gov/catalog/item/644af897d34e45f6ddcd13b3",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.353737+00:00",
+            "dataset_vintage": "USGS 2023 Conterminous U.S. NSHM (uniform-hazard ground motion maps, VS30=760 B/C; DOI 10.5066/P9GNPCOD)",
+            "ttl_seconds": 31536000,
+            "notes": "PGA (g) with 2% probability of exceedance in 50 yr (~2475-yr return), site class BC (VS30=760); sampled from the bootstrapped USGS 2023 NSHM uniform-hazard CONUS COG",
+            "status": "ok"
+          },
+          "seismic_design_category": {
+            "value": "D",
+            "unit": null,
+            "source": "USGS_DESIGNMAPS_ASCE7",
+            "source_url": "https://earthquake.usgs.gov/ws/designmaps/",
+            "confidence": "high",
+            "fetched_at": "2026-08-14T21:28:41.562349+00:00",
+            "dataset_vintage": "ASCE 7-22 (USGS provisional)",
+            "ttl_seconds": 31536000,
+            "notes": "siteClass=D riskCategory=II (assumed defaults; Ss=0.88 S1=0.28 SDS=0.75)",
+            "status": "ok"
+          },
+          "design_wind_speed_mph": {
+            "value": 103.0,
+            "unit": "mph",
+            "source": "NOAA_ASCE_WIND_VECTORS",
+            "source_url": "https://services2.arcgis.com/C8EMgrsFcRFL6LrL/arcgis/rest/services/ASCE_Wind_Vectors/FeatureServer",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.354618+00:00",
+            "dataset_vintage": "ASCE 7-22 700-yr MRI / Risk Cat II (NOAA CC0 mirror, local gpkg)",
+            "ttl_seconds": 31536000,
+            "notes": "banded 3-second-gust basic design wind speed (mph), Exposure C (point-in-polygon; local gpkg mirror)",
+            "status": "ok"
+          },
+          "wildfire_annual_frequency": {
+            "value": 0.008178329128594458,
+            "unit": null,
+            "source": "FEMA_NRI",
+            "source_url": "https://hazards.fema.gov/nri/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.355581+00:00",
+            "dataset_vintage": "FEMA National Risk Index per-tract annualized frequencies (local table; NOAA SPC/NCEI/Vaisala source data)",
+            "ttl_seconds": 2592000,
+            "notes": "annualized frequency for Census tract 06007002200 \u2014 events/yr",
+            "status": "ok"
+          },
+          "tornado_annual_frequency": {
+            "value": 0.004885709596693943,
+            "unit": null,
+            "source": "FEMA_NRI",
+            "source_url": "https://hazards.fema.gov/nri/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.355605+00:00",
+            "dataset_vintage": "FEMA National Risk Index per-tract annualized frequencies (local table; NOAA SPC/NCEI/Vaisala source data)",
+            "ttl_seconds": 2592000,
+            "notes": "annualized frequency for Census tract 06007002200 \u2014 events/yr",
+            "status": "ok"
+          },
+          "hail_annual_frequency": {
+            "value": 0.1057480556152888,
+            "unit": null,
+            "source": "FEMA_NRI",
+            "source_url": "https://hazards.fema.gov/nri/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.355617+00:00",
+            "dataset_vintage": "FEMA National Risk Index per-tract annualized frequencies (local table; NOAA SPC/NCEI/Vaisala source data)",
+            "ttl_seconds": 2592000,
+            "notes": "annualized frequency for Census tract 06007002200 \u2014 events/yr",
+            "status": "ok"
+          },
+          "lightning_annual_flash_days": {
+            "value": 12.292969000000003,
+            "unit": "days",
+            "source": "FEMA_NRI",
+            "source_url": "https://hazards.fema.gov/nri/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.355626+00:00",
+            "dataset_vintage": "FEMA National Risk Index per-tract annualized frequencies (local table; NOAA SPC/NCEI/Vaisala source data)",
+            "ttl_seconds": 2592000,
+            "notes": "annualized frequency for Census tract 06007002200 \u2014 lightning days/yr",
+            "status": "ok"
+          },
+          "landslide_susceptibility_index": {
+            "value": 77,
+            "unit": null,
+            "source": "USGS_LANDSLIDE_SUSCEPTIBILITY",
+            "source_url": "https://www.sciencebase.gov/catalog/item/65ccea5bd34ef4b119cb3bac",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.319832+00:00",
+            "dataset_vintage": "USGS Slope-Relief-Threshold landslide susceptibility (n10_susc, 2024)",
+            "ttl_seconds": 31536000,
+            "notes": "sampled from the bootstrapped n10_susc CONUS COG at the point",
+            "status": "ok"
+          },
+          "nearest_dam_distance_m": {
+            "value": 6440.0,
+            "unit": "m",
+            "source": "USACE_NID",
+            "source_url": "https://nid.sec.usace.army.mil/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.354952+00:00",
+            "dataset_vintage": "USACE National Inventory of Dams (local GeoPackage mirror of the Esri-hosted NID_v1 FeatureServer)",
+            "ttl_seconds": 2592000,
+            "notes": "straight-line distance to the nearest inventoried dam \u2014 a screening signal, not inundation exposure",
+            "status": "ok"
+          },
+          "nearest_dam_hazard_potential": {
+            "value": "Significant",
+            "unit": null,
+            "source": "USACE_NID",
+            "source_url": "https://nid.sec.usace.army.mil/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.354931+00:00",
+            "dataset_vintage": "USACE National Inventory of Dams (local GeoPackage mirror of the Esri-hosted NID_v1 FeatureServer)",
+            "ttl_seconds": 2592000,
+            "notes": "USACE consequence-of-failure class of the nearest dam \u2014 not a condition or failure-probability rating",
+            "status": "ok"
+          },
+          "high_hazard_dams_within_10km": {
+            "value": 2,
+            "unit": null,
+            "source": "USACE_NID",
+            "source_url": "https://nid.sec.usace.army.mil/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.354962+00:00",
+            "dataset_vintage": "USACE National Inventory of Dams (local GeoPackage mirror of the Esri-hosted NID_v1 FeatureServer)",
+            "ttl_seconds": 2592000,
+            "notes": "count of High hazard-potential NID dams in the 10 km band; a floor \u2014 sub-inventory-threshold dams are absent",
+            "status": "ok"
+          },
+          "in_karst_area": {
+            "value": false,
+            "unit": null,
+            "source": "USGS_KARST",
+            "source_url": "https://doi.org/10.3133/ofr20141156",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.354304+00:00",
+            "dataset_vintage": "USGS National Karst Map OFR 2014-1156 (local GeoPackage reduction, simplified ~90 m)",
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "karst_type": {
+            "value": null,
+            "unit": null,
+            "source": "USGS_KARST",
+            "source_url": "https://doi.org/10.3133/ofr20141156",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.354412+00:00",
+            "dataset_vintage": "USGS National Karst Map OFR 2014-1156 (local GeoPackage reduction, simplified ~90 m)",
+            "ttl_seconds": 31536000,
+            "notes": "in_karst_area is False (no mapped karst or pseudokarst unit at the point)",
+            "status": "absent"
+          },
+          "karst_exposure_class": {
+            "value": null,
+            "unit": null,
+            "source": "USGS_KARST",
+            "source_url": "https://doi.org/10.3133/ofr20141156",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:40.354430+00:00",
+            "dataset_vintage": "USGS National Karst Map OFR 2014-1156 (local GeoPackage reduction, simplified ~90 m)",
+            "ttl_seconds": 31536000,
+            "notes": "in_karst_area is False (no mapped karst or pseudokarst unit at the point)",
+            "status": "absent"
+          },
+          "fire_hazard_severity_zone_class": {
+            "value": "Very High",
+            "unit": null,
+            "source": "CALFIRE_FHSZ",
+            "source_url": "https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/FHSALRA25_v1_All/FeatureServer/0",
+            "confidence": "high",
+            "fetched_at": "2026-08-14T21:28:37.761758+00:00",
+            "dataset_vintage": "CAL FIRE OSFM LRA FHSZ (recommended), map dated 2025-03-24, all 4 rollout phases",
+            "ttl_seconds": 7776000,
+            "notes": "CAL FIRE LRA Fire Hazard Severity Zone at the point (FHSZ code 3); read with fire_hazard_responsibility_area, which decides what the class legally means.",
+            "status": "ok"
+          },
+          "fire_hazard_responsibility_area": {
+            "value": "LRA",
+            "unit": null,
+            "source": "CALFIRE_FHSZ",
+            "source_url": "https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/FHSALRA25_v1_All/FeatureServer/0",
+            "confidence": "high",
+            "fetched_at": "2026-08-14T21:28:37.761702+00:00",
+            "dataset_vintage": "CAL FIRE OSFM LRA FHSZ (recommended), map dated 2025-03-24, all 4 rollout phases",
+            "ttl_seconds": 7776000,
+            "notes": "responsibility area from the SRA attribute of the same CAL FIRE LRA polygon that carries the FHSZ class.",
+            "status": "ok"
+          },
+          "soil_shrink_swell_class": {
+            "value": null,
+            "unit": null,
+            "source": "NRCS_gNATSGO",
+            "source_url": "https://storage.googleapis.com/mireye-earth-data/soils/gnatsgo_mukey_conus_fy2025.tif",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:48:27.405396+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": "binned from dominant-component shallowest-horizon lep_r",
+            "status": "ok"
+          },
+          "within_floodplain_polygon": {
+            "value": false,
+            "unit": null,
+            "source": "FEMA_NFHL",
+            "source_url": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+            "confidence": "high",
+            "fetched_at": "2026-08-14T21:28:40.301779+00:00",
+            "dataset_vintage": "06007C_FIRM1",
+            "ttl_seconds": 2592000,
+            "notes": "FEMA NFHL Flood Hazard Zones intersect, but not an SFHA: Zone X; AREA OF MINIMAL FLOOD HAZARD; SFHA_TF=F; FLD_AR_ID=06007C_497; SOURCE_CIT=06007C_FIRM1.",
+            "status": "ok"
+          },
+          "slope_degrees": {
+            "value": 1.8932799100875854,
+            "unit": "degrees",
+            "source": "USGS_3DEP_COG",
+            "source_url": "https://www.usgs.gov/3d-elevation-program",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:28:38.153118+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          }
+        },
+        "partial_failures": [],
+        "resolved_location": {
+          "lat": 39.749521,
+          "lng": -121.63408,
+          "source": "coordinate"
+        }
+      }
     }
   },
   "29029 Upper Bear Creek Rd, Evergreen, CO 80439": {
@@ -99,7 +511,7 @@
           "unit": null,
           "source": "CALFIRE_FHSZ",
           "confidence": "high",
-          "notes": "the point is outside California — it falls outside the California bounding box entirely, so neither CAL FIRE layer was queried. CAL FIRE FHSZ is a California-only regulatory product and does not apply here. Not applicable, NOT a finding of no wildfire hazard.",
+          "notes": "the point is outside California \u2014 it falls outside the California bounding box entirely, so neither CAL FIRE layer was queried. CAL FIRE FHSZ is a California-only regulatory product and does not apply here. Not applicable, NOT a finding of no wildfire hazard.",
           "status": "absent"
         },
         "fire_hazard_responsibility_area": {
@@ -107,7 +519,7 @@
           "unit": null,
           "source": "CALFIRE_FHSZ",
           "confidence": "high",
-          "notes": "the point is outside California — it falls outside the California bounding box entirely, so neither CAL FIRE layer was queried. CAL FIRE FHSZ is a California-only regulatory product and does not apply here. Not applicable, NOT a finding of no wildfire hazard.",
+          "notes": "the point is outside California \u2014 it falls outside the California bounding box entirely, so neither CAL FIRE layer was queried. CAL FIRE FHSZ is a California-only regulatory product and does not apply here. Not applicable, NOT a finding of no wildfire hazard.",
           "status": "absent"
         },
         "tree_canopy_pct": {
@@ -140,6 +552,418 @@
         }
       },
       "partial_failures": []
+    },
+    "fetch_by_preset": {
+      "flood_risk": {
+        "lat": 39.633634,
+        "lng": -105.329915,
+        "fetched_at": "2026-08-15T21:54:27.718290+00:00",
+        "fields": {
+          "elevation": {
+            "value": 2162.692626953125,
+            "unit": "meters",
+            "source": "USGS_3DEP_COG",
+            "source_url": "https://www.usgs.gov/3d-elevation-program",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:29:18.094825+00:00",
+            "dataset_vintage": "3DEP 1/3 arc-second seamless DEM",
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "coast_distance_m": {
+            "value": 1207331.0696354567,
+            "unit": "meters",
+            "source": "NOAA_CUSP",
+            "source_url": "https://shoreline.noaa.gov/data/datasheets/cusp.html",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:23.788516+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "within_floodplain_polygon": {
+            "value": false,
+            "unit": null,
+            "source": "FEMA_NFHL",
+            "source_url": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:23.792220+00:00",
+            "dataset_vintage": "08059C_STUDY1",
+            "ttl_seconds": 2592000,
+            "notes": "FEMA NFHL Flood Hazard Zones intersect, but not an SFHA: Zone X; AREA OF MINIMAL FLOOD HAZARD; SFHA_TF=F; FLD_AR_ID=08059C_3984; SOURCE_CIT=08059C_STUDY1.",
+            "status": "ok"
+          },
+          "intersects_nhd_area": {
+            "value": false,
+            "unit": null,
+            "source": "USGS_NHDPLUS_HR",
+            "source_url": "https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer/8/query?f=json&outFields=%2A&returnGeometry=true&geometry=-105.329915%2C39.633634&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&resultRecordCount=1",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:27.689829+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": "No NHDPlus HR NHDArea polygon intersects this coordinate. This does not rule out FEMA NFHL flood-hazard coverage.",
+            "status": "ok"
+          },
+          "intersects_wetland": {
+            "value": false,
+            "unit": null,
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:25.618012+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "wetland_type": {
+            "value": "Riverine Upper Perennial Unconsolidated Bottom Intermittently Exposed",
+            "unit": null,
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:25.618070+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "wetland_subtype": {
+            "value": "R3UBG",
+            "unit": null,
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:25.618079+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "wetland_acres": {
+            "value": 9.268821549836009,
+            "unit": "acre",
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:25.618086+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "nearest_wetland_distance_m": {
+            "value": 44.40548889275862,
+            "unit": "m",
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:25.618093+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "wetlands_within_100m_count": {
+            "value": 6,
+            "unit": null,
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:25.618100+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "wetlands_within_500m_count": {
+            "value": 14,
+            "unit": null,
+            "source": "USFWS_NWI",
+            "source_url": "https://www.fws.gov/program/national-wetlands-inventory",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:25.618107+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "surface_water_permanence_pct": {
+            "value": 0.0,
+            "unit": "percent",
+            "source": "JRC_GSW",
+            "source_url": "https://global-surface-water.appspot.com/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:23.791792+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 2592000,
+            "notes": null,
+            "status": "ok"
+          },
+          "nearest_waterbody_name": {
+            "value": "Evergreen Lake",
+            "unit": null,
+            "source": "USGS_NHDPLUS_HR",
+            "source_url": "https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer/9/query?f=json&outFields=%2A&returnGeometry=true&geometry=-105.329915%2C39.633634&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=5000&units=esriSRUnit_Meter&outSR=4326&orderByFields=OBJECTID&resultRecordCount=200&resultOffset=0",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:27.689950+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          }
+        },
+        "partial_failures": [],
+        "resolved_location": {
+          "lat": 39.633634,
+          "lng": -105.329915,
+          "source": "coordinate"
+        }
+      },
+      "natural_hazard": {
+        "lat": 39.633634,
+        "lng": -105.329915,
+        "fetched_at": "2026-08-15T21:54:28.886466+00:00",
+        "fields": {
+          "seismic_pga_2pct_50yr_g": {
+            "value": 0.14499999582767487,
+            "unit": "g",
+            "source": "USGS_NSHM",
+            "source_url": "https://www.sciencebase.gov/catalog/item/644af897d34e45f6ddcd13b3",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.071392+00:00",
+            "dataset_vintage": "USGS 2023 Conterminous U.S. NSHM (uniform-hazard ground motion maps, VS30=760 B/C; DOI 10.5066/P9GNPCOD)",
+            "ttl_seconds": 31536000,
+            "notes": "PGA (g) with 2% probability of exceedance in 50 yr (~2475-yr return), site class BC (VS30=760); sampled from the bootstrapped USGS 2023 NSHM uniform-hazard CONUS COG",
+            "status": "ok"
+          },
+          "seismic_design_category": {
+            "value": "B",
+            "unit": null,
+            "source": "USGS_DESIGNMAPS_ASCE7",
+            "source_url": "https://earthquake.usgs.gov/ws/designmaps/",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:28.847595+00:00",
+            "dataset_vintage": "ASCE 7-22 (USGS provisional)",
+            "ttl_seconds": 31536000,
+            "notes": "siteClass=D riskCategory=II (assumed defaults; Ss=0.24 S1=0.05 SDS=0.19)",
+            "status": "ok"
+          },
+          "design_wind_speed_mph": {
+            "value": 112.0,
+            "unit": "mph",
+            "source": "NOAA_ASCE_WIND_VECTORS",
+            "source_url": "https://services2.arcgis.com/C8EMgrsFcRFL6LrL/arcgis/rest/services/ASCE_Wind_Vectors/FeatureServer",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.072061+00:00",
+            "dataset_vintage": "ASCE 7-22 700-yr MRI / Risk Cat II (NOAA CC0 mirror, local gpkg)",
+            "ttl_seconds": 31536000,
+            "notes": "banded 3-second-gust basic design wind speed (mph), Exposure C (point-in-polygon; local gpkg mirror)",
+            "status": "ok"
+          },
+          "wildfire_annual_frequency": {
+            "value": 0.012030227467759187,
+            "unit": null,
+            "source": "FEMA_NRI",
+            "source_url": "https://hazards.fema.gov/nri/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.073256+00:00",
+            "dataset_vintage": "FEMA National Risk Index per-tract annualized frequencies (local table; NOAA SPC/NCEI/Vaisala source data)",
+            "ttl_seconds": 2592000,
+            "notes": "annualized frequency for Census tract 08059009848 \u2014 events/yr",
+            "status": "ok"
+          },
+          "tornado_annual_frequency": {
+            "value": 0.00760958086627046,
+            "unit": null,
+            "source": "FEMA_NRI",
+            "source_url": "https://hazards.fema.gov/nri/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.073306+00:00",
+            "dataset_vintage": "FEMA National Risk Index per-tract annualized frequencies (local table; NOAA SPC/NCEI/Vaisala source data)",
+            "ttl_seconds": 2592000,
+            "notes": "annualized frequency for Census tract 08059009848 \u2014 events/yr",
+            "status": "ok"
+          },
+          "hail_annual_frequency": {
+            "value": 6.315566789476628,
+            "unit": null,
+            "source": "FEMA_NRI",
+            "source_url": "https://hazards.fema.gov/nri/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.073323+00:00",
+            "dataset_vintage": "FEMA National Risk Index per-tract annualized frequencies (local table; NOAA SPC/NCEI/Vaisala source data)",
+            "ttl_seconds": 2592000,
+            "notes": "annualized frequency for Census tract 08059009848 \u2014 events/yr",
+            "status": "ok"
+          },
+          "lightning_annual_flash_days": {
+            "value": 63.86943179317217,
+            "unit": "days",
+            "source": "FEMA_NRI",
+            "source_url": "https://hazards.fema.gov/nri/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.073337+00:00",
+            "dataset_vintage": "FEMA National Risk Index per-tract annualized frequencies (local table; NOAA SPC/NCEI/Vaisala source data)",
+            "ttl_seconds": 2592000,
+            "notes": "annualized frequency for Census tract 08059009848 \u2014 lightning days/yr",
+            "status": "ok"
+          },
+          "landslide_susceptibility_index": {
+            "value": 79,
+            "unit": null,
+            "source": "USGS_LANDSLIDE_SUSCEPTIBILITY",
+            "source_url": "https://www.sciencebase.gov/catalog/item/65ccea5bd34ef4b119cb3bac",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.045212+00:00",
+            "dataset_vintage": "USGS Slope-Relief-Threshold landslide susceptibility (n10_susc, 2024)",
+            "ttl_seconds": 31536000,
+            "notes": "sampled from the bootstrapped n10_susc CONUS COG at the point",
+            "status": "ok"
+          },
+          "nearest_dam_distance_m": {
+            "value": 626.4,
+            "unit": "m",
+            "source": "USACE_NID",
+            "source_url": "https://nid.sec.usace.army.mil/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.072491+00:00",
+            "dataset_vintage": "USACE National Inventory of Dams (local GeoPackage mirror of the Esri-hosted NID_v1 FeatureServer)",
+            "ttl_seconds": 2592000,
+            "notes": "straight-line distance to the nearest inventoried dam \u2014 a screening signal, not inundation exposure",
+            "status": "ok"
+          },
+          "nearest_dam_hazard_potential": {
+            "value": "High",
+            "unit": null,
+            "source": "USACE_NID",
+            "source_url": "https://nid.sec.usace.army.mil/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.072469+00:00",
+            "dataset_vintage": "USACE National Inventory of Dams (local GeoPackage mirror of the Esri-hosted NID_v1 FeatureServer)",
+            "ttl_seconds": 2592000,
+            "notes": "USACE consequence-of-failure class of the nearest dam \u2014 not a condition or failure-probability rating",
+            "status": "ok"
+          },
+          "high_hazard_dams_within_10km": {
+            "value": 2,
+            "unit": null,
+            "source": "USACE_NID",
+            "source_url": "https://nid.sec.usace.army.mil/",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.072614+00:00",
+            "dataset_vintage": "USACE National Inventory of Dams (local GeoPackage mirror of the Esri-hosted NID_v1 FeatureServer)",
+            "ttl_seconds": 2592000,
+            "notes": "count of High hazard-potential NID dams in the 10 km band; a floor \u2014 sub-inventory-threshold dams are absent",
+            "status": "ok"
+          },
+          "in_karst_area": {
+            "value": false,
+            "unit": null,
+            "source": "USGS_KARST",
+            "source_url": "https://doi.org/10.3133/ofr20141156",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.071800+00:00",
+            "dataset_vintage": "USGS National Karst Map OFR 2014-1156 (local GeoPackage reduction, simplified ~90 m)",
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          },
+          "karst_type": {
+            "value": null,
+            "unit": null,
+            "source": "USGS_KARST",
+            "source_url": "https://doi.org/10.3133/ofr20141156",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.071822+00:00",
+            "dataset_vintage": "USGS National Karst Map OFR 2014-1156 (local GeoPackage reduction, simplified ~90 m)",
+            "ttl_seconds": 31536000,
+            "notes": "in_karst_area is False (no mapped karst or pseudokarst unit at the point)",
+            "status": "absent"
+          },
+          "karst_exposure_class": {
+            "value": null,
+            "unit": null,
+            "source": "USGS_KARST",
+            "source_url": "https://doi.org/10.3133/ofr20141156",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.071833+00:00",
+            "dataset_vintage": "USGS National Karst Map OFR 2014-1156 (local GeoPackage reduction, simplified ~90 m)",
+            "ttl_seconds": 31536000,
+            "notes": "in_karst_area is False (no mapped karst or pseudokarst unit at the point)",
+            "status": "absent"
+          },
+          "fire_hazard_severity_zone_class": {
+            "value": null,
+            "unit": null,
+            "source": "CALFIRE_FHSZ",
+            "source_url": "https://osfm.fire.ca.gov/what-we-do/community-wildfire-preparedness-and-mitigation/fire-hazard-severity-zones",
+            "confidence": "high",
+            "fetched_at": "2026-08-14T21:29:17.530479+00:00",
+            "dataset_vintage": "CAL FIRE OSFM SRA FHSZ, map dated 2023-09-29, adopted 2024-01-31, effective 2024-04-01; CAL FIRE OSFM LRA FHSZ (recommended), map dated 2025-03-24, all 4 rollout phases",
+            "ttl_seconds": 7776000,
+            "notes": "the point is outside California \u2014 it falls outside the California bounding box entirely, so neither CAL FIRE layer was queried. CAL FIRE FHSZ is a California-only regulatory product and does not apply here. Not applicable, NOT a finding of no wildfire hazard.",
+            "status": "absent"
+          },
+          "fire_hazard_responsibility_area": {
+            "value": null,
+            "unit": null,
+            "source": "CALFIRE_FHSZ",
+            "source_url": "https://osfm.fire.ca.gov/what-we-do/community-wildfire-preparedness-and-mitigation/fire-hazard-severity-zones",
+            "confidence": "high",
+            "fetched_at": "2026-08-14T21:29:17.530479+00:00",
+            "dataset_vintage": "CAL FIRE OSFM SRA FHSZ, map dated 2023-09-29, adopted 2024-01-31, effective 2024-04-01; CAL FIRE OSFM LRA FHSZ (recommended), map dated 2025-03-24, all 4 rollout phases",
+            "ttl_seconds": 7776000,
+            "notes": "the point is outside California \u2014 it falls outside the California bounding box entirely, so neither CAL FIRE layer was queried. CAL FIRE FHSZ is a California-only regulatory product and does not apply here. Not applicable, NOT a finding of no wildfire hazard.",
+            "status": "absent"
+          },
+          "soil_shrink_swell_class": {
+            "value": "Low",
+            "unit": null,
+            "source": "NRCS_gNATSGO",
+            "source_url": "https://storage.googleapis.com/mireye-earth-data/soils/gnatsgo_mukey_conus_fy2025.tif",
+            "confidence": "medium",
+            "fetched_at": "2026-08-15T21:54:28.383876+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": "binned from dominant-component shallowest-horizon lep_r",
+            "status": "ok"
+          },
+          "within_floodplain_polygon": {
+            "value": false,
+            "unit": null,
+            "source": "FEMA_NFHL",
+            "source_url": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+            "confidence": "high",
+            "fetched_at": "2026-08-15T21:54:23.792220+00:00",
+            "dataset_vintage": "08059C_STUDY1",
+            "ttl_seconds": 2592000,
+            "notes": "FEMA NFHL Flood Hazard Zones intersect, but not an SFHA: Zone X; AREA OF MINIMAL FLOOD HAZARD; SFHA_TF=F; FLD_AR_ID=08059C_3984; SOURCE_CIT=08059C_STUDY1.",
+            "status": "ok"
+          },
+          "slope_degrees": {
+            "value": 6.348572731018066,
+            "unit": "degrees",
+            "source": "USGS_3DEP_COG",
+            "source_url": "https://www.usgs.gov/3d-elevation-program",
+            "confidence": "medium",
+            "fetched_at": "2026-08-14T21:29:18.095877+00:00",
+            "dataset_vintage": null,
+            "ttl_seconds": 31536000,
+            "notes": null,
+            "status": "ok"
+          }
+        },
+        "partial_failures": [],
+        "resolved_location": {
+          "lat": 39.633634,
+          "lng": -105.329915,
+          "source": "coordinate"
+        }
+      }
     }
   }
 }

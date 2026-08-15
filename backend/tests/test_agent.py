@@ -6,11 +6,19 @@ import pytest
 
 from agent.agent import (
     ASK_ABOUT_LOCATION_SCHEMA,
+    CHECK_EARTHQUAKE_RISK_SCHEMA,
+    CHECK_FLOOD_RISK_SCHEMA,
     CHECK_INSURABILITY_SCHEMA,
     COMPARE_ADDRESSES_SCHEMA,
+    FULL_RISK_REPORT_SCHEMA,
     InsurabilityAgent,
 )
-from tests.fixtures import LOW_RISK_CA_FETCH, PARADISE_CA_FETCH
+from tests.fixtures import (
+    LOW_RISK_CA_FETCH,
+    MIAMI_BEACH_FLOOD_FETCH,
+    PARADISE_CA_FETCH,
+    PARADISE_EARTHQUAKE_FETCH,
+)
 
 
 def test_requires_api_key(monkeypatch):
@@ -41,6 +49,25 @@ def test_ask_about_location_schema_matches_signature():
     assert "address" in props
     assert "question" in props
     assert set(ASK_ABOUT_LOCATION_SCHEMA["input_schema"]["required"]) == {"address", "question"}
+
+
+def test_check_flood_risk_schema_matches_signature():
+    props = CHECK_FLOOD_RISK_SCHEMA["input_schema"]["properties"]
+    assert "address" in props
+    assert "overrides" not in props  # flood has no counterfactual override yet
+    assert CHECK_FLOOD_RISK_SCHEMA["input_schema"]["required"] == ["address"]
+
+
+def test_check_earthquake_risk_schema_matches_signature():
+    props = CHECK_EARTHQUAKE_RISK_SCHEMA["input_schema"]["properties"]
+    assert "address" in props
+    assert CHECK_EARTHQUAKE_RISK_SCHEMA["input_schema"]["required"] == ["address"]
+
+
+def test_full_risk_report_schema_matches_signature():
+    props = FULL_RISK_REPORT_SCHEMA["input_schema"]["properties"]
+    assert "address" in props
+    assert FULL_RISK_REPORT_SCHEMA["input_schema"]["required"] == ["address"]
 
 
 class _FakeToolUseBlock:
@@ -233,6 +260,137 @@ def test_agent_dispatches_ask_about_location_tool(monkeypatch):
     trace = result["tool_calls"][0]
     assert trace["tool"] == "ask_about_location"
     assert trace["confidence"] == "medium"
+
+
+def test_agent_dispatches_check_flood_risk_tool(monkeypatch):
+    """The agent must route a check_flood_risk tool_use block to
+    _tool_check_flood_risk, not to the wildfire scorer — the dispatch-level
+    guard that keeps each hazard sub-agent's own rule table in play."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+
+    import mcp_server.server as server_mod
+    from mireye_client.client import GeocodeResult
+
+    class FakeMireyeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_a):
+            pass
+
+        def geocode(self, address):
+            return GeocodeResult(25.77, -80.13, 1.0, "rooftop", address, "geocodio")
+
+        def fetch_with_retry(self, lat, lng, preset, max_retries=1):
+            assert preset == "flood_risk"
+            return MIAMI_BEACH_FLOOD_FETCH
+
+        def lookup_parcel(self, address):
+            return None
+
+    monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeMireyeClient())
+
+    responses = iter(
+        [
+            SimpleNamespace(
+                stop_reason="tool_use",
+                content=[
+                    _FakeToolUseBlock(
+                        "tool_1",
+                        {"address": "100 Ocean Dr, Miami Beach, FL 33139"},
+                        name="check_flood_risk",
+                    )
+                ],
+            ),
+            SimpleNamespace(
+                stop_reason="end_turn",
+                content=[_FakeTextBlock("This one's in a mandatory flood-insurance zone.")],
+            ),
+        ]
+    )
+
+    agent = InsurabilityAgent()
+    agent._client = SimpleNamespace(
+        messages=SimpleNamespace(create=lambda **_kwargs: next(responses))
+    )
+
+    result = agent.ask_verbose("Is this address in a flood zone that requires insurance?")
+    assert "flood-insurance zone" in result["reply"]
+    trace = result["tool_calls"][0]
+    assert trace["tool"] == "check_flood_risk"
+    assert trace["verdict"] == "likely_hard_to_place"
+
+
+def test_agent_dispatches_full_risk_report_tool(monkeypatch):
+    """The agent must route a full_risk_report tool_use block through the
+    orchestrator, which itself dispatches to all three hazard sub-agents —
+    the multi-hazard "sub-agents doing other tasks" delegation path."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+
+    import mcp_server.server as server_mod
+    from mireye_client.client import GeocodeResult
+
+    class FakeMireyeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_a):
+            pass
+
+        def geocode(self, address):
+            return GeocodeResult(39.75, -121.63, 1.0, "rooftop", address, "geocodio")
+
+        def fetch_with_retry(self, lat, lng, preset, max_retries=1):
+            if preset == "wildfire_underwrite":
+                return PARADISE_CA_FETCH
+            if preset == "flood_risk":
+                return {"lat": lat, "lng": lng, "fields": {
+                    "within_floodplain_polygon": {"value": False, "source": "FEMA_NFHL", "status": "ok"},
+                }}
+            if preset == "natural_hazard":
+                return PARADISE_EARTHQUAKE_FETCH
+            raise AssertionError(f"unexpected preset: {preset}")
+
+        def lookup_parcel(self, address):
+            return None
+
+    monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeMireyeClient())
+
+    responses = iter(
+        [
+            SimpleNamespace(
+                stop_reason="tool_use",
+                content=[
+                    _FakeToolUseBlock(
+                        "tool_1",
+                        {"address": "5555 Skyway, Paradise, CA 95969"},
+                        name="full_risk_report",
+                    )
+                ],
+            ),
+            SimpleNamespace(
+                stop_reason="end_turn",
+                content=[_FakeTextBlock("Wildfire is the main red flag here.")],
+            ),
+        ]
+    )
+
+    agent = InsurabilityAgent()
+    agent._client = SimpleNamespace(
+        messages=SimpleNamespace(create=lambda **_kwargs: next(responses))
+    )
+
+    result = agent.ask_verbose("Give me the full risk picture on this address")
+    assert "Wildfire is the main red flag" in result["reply"]
+    trace = result["tool_calls"][0]
+    assert trace["tool"] == "full_risk_report"
+    assert trace["overall_verdict"] == "likely_hard_to_place"
+    by_hazard = {h["hazard"]: h["verdict"] for h in trace["hazards"]}
+    assert by_hazard == {
+        "wildfire": "likely_hard_to_place",
+        "flood": "likely_insurable",
+        "earthquake": "harder_to_place",
+    }
     assert "verdict" not in trace
 
 

@@ -1,11 +1,18 @@
 import pytest
 
+from scorer import earthquake_rule_table, flood_rule_table
 from scorer.rule_table import RULE_TABLE, lookup
-from scorer.score import score
+from scorer.score import score, score_earthquake, score_flood
 from tests.fixtures import (
+    EARTHQUAKE_TRANSIENT_FAILURE_FETCH,
     EVERGREEN_CO_FETCH,
+    FLOOD_TRANSIENT_FAILURE_FETCH,
     FRA_WITHIN_CA_FETCH,
+    GUERNEVILLE_FLOOD_FETCH,
+    MIAMI_BEACH_EARTHQUAKE_FETCH,
+    MIAMI_BEACH_FLOOD_FETCH,
     PARADISE_CA_FETCH,
+    PARADISE_EARTHQUAKE_FETCH,
     TRANSIENT_FAILURE_FETCH,
 )
 
@@ -101,3 +108,101 @@ class TestMitigationCostGaps:
         priced = [m for m in result["mitigations"] if m["action"] == "Spark arrestor on chimney"]
         assert priced
         assert priced[0]["est_cost_usd"] == [100, 500]
+
+
+class TestFloodRuleTable:
+    def test_both_sfha_states_present(self):
+        assert True in flood_rule_table.FLOOD_RULE_TABLE
+        assert False in flood_rule_table.FLOOD_RULE_TABLE
+
+    def test_within_sfha_is_statutory(self):
+        # NFIP mandatory-purchase trigger for federally-backed mortgages.
+        assert flood_rule_table.lookup(True).statutory is True
+
+    def test_outside_sfha_is_not_statutory(self):
+        assert flood_rule_table.lookup(False).statutory is False
+
+    def test_within_sfha_scores_worse_than_outside(self):
+        inside = flood_rule_table.lookup(True).verdict
+        outside = flood_rule_table.lookup(False).verdict
+        assert inside != outside
+
+    def test_lookup_none_returns_none(self):
+        assert flood_rule_table.lookup(None) is None
+
+
+class TestScoreFlood:
+    def test_sfha_is_likely_hard_to_place(self):
+        result = score_flood(MIAMI_BEACH_FLOOD_FETCH)
+        assert result["verdict"] == "likely_hard_to_place"
+        assert "FEMA_NFHL" in result["data_sources"]
+        assert result["mitigations"], "should list flood mitigation actions"
+
+    def test_outside_sfha_is_likely_insurable(self):
+        result = score_flood(GUERNEVILLE_FLOOD_FETCH)
+        assert result["verdict"] == "likely_insurable"
+
+    def test_transient_failure_is_low_confidence(self):
+        result = score_flood(FLOOD_TRANSIENT_FAILURE_FETCH)
+        assert result["verdict"] == "low_confidence"
+
+    def test_driving_factors_mention_sfha_not_wildfire(self):
+        result = score_flood(MIAMI_BEACH_FLOOD_FETCH)
+        joined = " ".join(result["driving_factors"])
+        assert "Special Flood Hazard Area" in joined
+        assert "fire" not in joined.lower()
+
+    def test_mitigations_have_real_cost_ranges(self):
+        result = score_flood(MIAMI_BEACH_FLOOD_FETCH)
+        actions = {m["action"]: m["est_cost_usd"] for m in result["mitigations"]}
+        assert actions["Elevate utilities/mechanicals above Base Flood Elevation"] == [5000, 20000]
+
+
+class TestEarthquakeRuleTable:
+    def test_all_six_categories_present(self):
+        for cat in ["A", "B", "C", "D", "E", "F"]:
+            assert cat in earthquake_rule_table.EARTHQUAKE_RULE_TABLE, f"missing rule for SDC {cat}"
+
+    def test_low_categories_not_statutory(self):
+        for cat in ["A", "B", "C"]:
+            assert earthquake_rule_table.lookup(cat).statutory is False
+
+    def test_high_categories_are_statutory(self):
+        for cat in ["D", "E", "F"]:
+            assert earthquake_rule_table.lookup(cat).statutory is True
+
+    def test_severity_increases_with_category(self):
+        low = earthquake_rule_table.lookup("A").verdict
+        high = earthquake_rule_table.lookup("F").verdict
+        assert low != high
+
+    def test_unknown_category_returns_none(self):
+        assert earthquake_rule_table.lookup("Z") is None
+        assert earthquake_rule_table.lookup(None) is None
+
+
+class TestScoreEarthquake:
+    def test_sdc_d_is_harder_to_place(self):
+        result = score_earthquake(PARADISE_EARTHQUAKE_FETCH)
+        assert result["verdict"] == "harder_to_place"
+        assert "USGS_DESIGNMAPS_ASCE7" in result["data_sources"]
+        assert result["mitigations"], "should list seismic retrofit actions"
+
+    def test_sdc_a_is_likely_insurable(self):
+        result = score_earthquake(MIAMI_BEACH_EARTHQUAKE_FETCH)
+        assert result["verdict"] == "likely_insurable"
+
+    def test_transient_failure_is_low_confidence(self):
+        result = score_earthquake(EARTHQUAKE_TRANSIENT_FAILURE_FETCH)
+        assert result["verdict"] == "low_confidence"
+
+    def test_driving_factors_mention_seismic_not_wildfire(self):
+        result = score_earthquake(PARADISE_EARTHQUAKE_FETCH)
+        joined = " ".join(result["driving_factors"])
+        assert "Seismic Design Category" in joined
+        assert "fire" not in joined.lower()
+
+    def test_pga_included_as_context_when_present(self):
+        result = score_earthquake(PARADISE_EARTHQUAKE_FETCH)
+        joined = " ".join(result["driving_factors"])
+        assert "ground acceleration" in joined.lower()

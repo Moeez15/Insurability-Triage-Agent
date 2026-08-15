@@ -1,0 +1,21 @@
+# Common, real seismic retrofit actions and their typical cost ranges.
+# Approximate, commonly-cited figures (e.g. California's Earthquake Brace +
+# Bolt program has offered grants up to $3,000 toward exactly the first
+# action below) — same disclaimer posture as mitigation_costs.yaml.
+actions:
+  - id: foundation_bolting
+    name: Foundation bolting + cripple wall bracing (seismic retrofit)
+    est_cost_usd: [3000, 7000]
+    note: California's Earthquake Brace + Bolt program has offered grants up to $3,000 toward this exact retrofit.
+  - id: water_heater_strapping
+    name: Strap the water heater
+    est_cost_usd: [100, 300]
+    note: Prevents a common secondary hazard (gas-line rupture, fire) during shaking.
+  - id: gas_shutoff_valve
+    name: Install an automatic seismic gas shutoff valve
+    est_cost_usd: [400, 800]
+    note: Cuts gas supply automatically during strong shaking, reducing post-quake fire risk.
+  - id: soft_story_retrofit
+    name: Soft-story / unreinforced masonry retrofit
+    est_cost_usd: [20000, 60000]
+    note: For older multi-unit or unreinforced masonry buildings — the highest-impact action for higher seismic design categories.

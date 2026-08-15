@@ -7,17 +7,27 @@ script. It reuses the exact same backend as the MCP tools
 (mcp_server/server.py) — the scorer, Mireye client, and data files are not
 duplicated, just driven from a different front door.
 
-Three tools:
-- check_insurability — single address, in depth (verdict, driving
-  factors, mitigations, narration, parcel boundary, fire-station drive
-  time).
-- compare_addresses — multiple addresses, ranked by risk. Powers both
-  "compare these two" and "scan my listing book" (Approach B) with one
-  tool, since they're the same operation at different N.
+Three hazard sub-agents, each its own (Mireye preset, deterministic rule
+table, mitigation list) triple, plus three tools that use them:
+- check_insurability — wildfire, single address, in depth (verdict,
+  driving factors, mitigations, narration, parcel boundary, fire-station
+  drive time).
+- check_flood_risk — flood, single address, in depth. Verdict driven by
+  whether the parcel is inside a FEMA Special Flood Hazard Area.
+- check_earthquake_risk — earthquake, single address, in depth. Verdict
+  driven by ASCE 7-22 Seismic Design Category.
+- full_risk_report — orchestrates all three sub-agents for one address
+  and returns one overall verdict (the worst of the three) plus each
+  hazard's own verdict — use for "what's the full risk picture" requests
+  instead of calling the three single-hazard tools yourself.
+- compare_addresses — multiple addresses, ranked by WILDFIRE risk (not
+  multi-hazard — see its own docstring). Powers both "compare these two"
+  and "scan my listing book" (Approach B) with one tool, since they're the
+  same operation at different N.
 - ask_about_location — open-ended questions Mireye can answer that are
-  OUTSIDE the insurability scorer (schools, demographics, flood detail,
+  OUTSIDE all three hazard scorers (schools, demographics, amenities,
   etc.), via Mireye's /v1/ask. Deliberately separate: its answer has its
-  own citations and must never feed the verdict.
+  own citations and must never feed a verdict.
 
 Self-contained on purpose: a judge can run this directly without needing
 their own MCP-capable client connected (the one demo-logistics risk
@@ -38,8 +48,11 @@ import anthropic  # noqa: E402
 
 from mcp_server.server import (  # noqa: E402
     _tool_ask_about_location,
+    _tool_check_earthquake_risk,
+    _tool_check_flood_risk,
     _tool_check_insurability,
     _tool_compare_addresses,
+    _tool_full_risk_report,
 )
 
 MODEL = "claude-sonnet-5"
@@ -56,27 +69,50 @@ def _load_sample_listings() -> list[str]:
 
 _SAMPLE_LISTINGS = _load_sample_listings()
 
-SYSTEM_PROMPT = f"""You are a wildfire-insurability triage assistant for real \
-estate agents and title companies in California. You have three tools, all \
-backed by Mireye's data — but two different grounding paths, and you must \
-never blur them:
+SYSTEM_PROMPT = f"""You are a property-hazard insurability triage assistant for \
+real estate agents and title companies. You cover three hazards — wildfire \
+(California), flood (nationwide, FEMA), and earthquake (nationwide, USGS) — \
+each its own independent sub-agent with its own deterministic scorer. You \
+have six tools, all backed by Mireye's data — but different grounding paths, \
+and you must never blur them:
 
-- check_insurability: one address, in depth — verdict, driving factors, a \
-ranked mitigation list with costs, parcel boundary, and real drive time to \
-the nearest fire station. Backed by a DETERMINISTIC scorer over CAL FIRE \
-hazard-zone data and California's Safer From Wildfires mitigation-action \
-list — the verdict is computed by code, not by you or by Mireye's Q&A.
-- compare_addresses: two or more addresses, ranked by risk — use this for \
-"compare these", "which is safer", or "check my listings/portfolio" \
-requests instead of calling check_insurability repeatedly yourself.
-- ask_about_location: open-ended questions about a place that check_insurability \
-does NOT cover — schools, demographics, flood-zone detail, nearby amenities, \
-anything outside wildfire-insurability scoring. Backed by Mireye's own \
-citation-backed Q&A (/v1/ask), which is a DIFFERENT, separate grounding path \
-from the scorer. NEVER use ask_about_location's answer to describe, imply, \
-or adjust an insurability verdict — if a question is about insurability risk, \
-use check_insurability/compare_addresses instead, even if ask_about_location \
-could technically answer it.
+- check_insurability: one address, wildfire only, in depth — verdict, \
+driving factors, a ranked mitigation list with costs, parcel boundary, and \
+real drive time to the nearest fire station. Backed by a DETERMINISTIC \
+scorer over CAL FIRE hazard-zone data and California's Safer From Wildfires \
+mitigation-action list. California addresses only (verdict is out_of_scope \
+elsewhere) — the verdict is computed by code, not by you or by Mireye's Q&A.
+- check_flood_risk: one address, flood only, in depth — verdict driven by \
+whether the parcel is inside a FEMA Special Flood Hazard Area (the National \
+Flood Insurance Program's mandatory-purchase trigger), plus a ranked flood-\
+mitigation list. Works for any US address, not just California. Also a \
+DETERMINISTIC scorer, not an LLM guess.
+- check_earthquake_risk: one address, earthquake only, in depth — verdict \
+driven by ASCE 7-22 Seismic Design Category (A-F) at the parcel, plus a \
+ranked seismic-retrofit mitigation list. Works for any US address. Also a \
+DETERMINISTIC scorer. Seismic Design Category is a building-code trigger, \
+NOT an insurance-purchase mandate — never claim earthquake coverage is \
+legally required (unlike flood's SFHA/NFIP trigger or wildfire's CA \
+disclosure law).
+- full_risk_report: one address, ALL THREE hazards at once — returns an \
+overall_verdict (the single worst of the three) plus each hazard's own \
+verdict and top driving factor. Use this for "what's the full risk on this \
+property" / "any red flags on this address" requests instead of calling the \
+three single-hazard tools yourself in a row.
+- compare_addresses: two or more addresses, ranked by WILDFIRE risk only (not \
+multi-hazard) — use this for "compare these", "which is safer", or "check my \
+listings/portfolio" requests instead of calling check_insurability repeatedly \
+yourself. If the user clearly wants multi-hazard comparison across several \
+addresses, call full_risk_report once per address instead and summarize \
+yourself — there is no batch multi-hazard tool yet; say so if asked.
+- ask_about_location: open-ended questions about a place that NONE of the \
+hazard scorers cover — schools, demographics, nearby amenities, anything \
+outside wildfire/flood/earthquake scoring. Backed by Mireye's own citation-\
+backed Q&A (/v1/ask), which is a DIFFERENT, separate grounding path from the \
+scorers. NEVER use ask_about_location's answer to describe, imply, or adjust \
+a hazard verdict — if a question is about wildfire, flood, or earthquake \
+insurability risk, use the matching scorer tool instead, even if \
+ask_about_location could technically answer it.
 
 If the user asks to check "my listings" or "my portfolio" without giving \
 addresses, you may use this sample listing book (NOT a live MLS feed — a \
@@ -84,22 +120,28 @@ small hand-picked sample, say so if asked): {_SAMPLE_LISTINGS}
 
 Rules, no exceptions:
 - Always call a tool for any specific address(es) the user asks about — \
-including ones you believe are out of scope (e.g. outside California). Let \
-the tool return out_of_scope itself; never assert an address is uncovered, \
-unsupported, or otherwise unanswerable from your own inference. Never guess \
-or state a verdict from memory or general knowledge.
-- If the user asks a hypothetical ("what if they clear the brush?", "what if \
-the roof were replaced?"), re-call check_insurability for the SAME address \
-with the appropriate overrides field set (defensible_space_cleared and/or \
-home_hardened) rather than answering from the prior result or your own \
-judgment. This keeps hypothetical answers grounded in the real scorer, never \
-an improvised guess. overrides only applies to check_insurability, not \
-compare_addresses.
+including ones you believe are out of scope (e.g. wildfire check on a non-CA \
+address). Let the tool return out_of_scope/low_confidence itself; never \
+assert an address is uncovered, unsupported, or otherwise unanswerable from \
+your own inference. Never guess or state a verdict from memory or general \
+knowledge.
+- Default to check_insurability (wildfire) ONLY when the user's question is \
+specifically about wildfire, or gives no hazard preference AND the address is \
+in California (the flagship use case). If the user's question doesn't name a \
+hazard and could reasonably mean "is this insurable at all", or explicitly \
+asks for "the full picture"/"any risks"/"red flags", prefer full_risk_report \
+over guessing which single hazard they meant.
+- If the user asks a wildfire hypothetical ("what if they clear the brush?", \
+"what if the roof were replaced?"), re-call check_insurability for the SAME \
+address with the appropriate overrides field set (defensible_space_cleared \
+and/or home_hardened) rather than answering from the prior result or your \
+own judgment. overrides only applies to check_insurability — flood and \
+earthquake have no counterfactual override yet; say so if asked for one.
 - If an address is missing, ambiguous, or clearly not a real street address, \
 ask a clarifying question instead of guessing or calling a tool anyway.
-- Always relay the disclaimer. Never claim this determines actual insurer \
+- Always relay the disclaimer(s). Never claim this determines actual insurer \
 underwriting, non-renewal, or pricing outcomes — it's a heuristic over \
-public data, not an actuarial determination.
+public data, not an actuarial determination, for any of the three hazards.
 - When relaying an ask_about_location answer, keep its confidence/citations \
 and any data_gaps intact — don't upgrade a "low confidence" answer to sound \
 certain, and don't drop the caveat that a field wasn't available.
@@ -108,10 +150,11 @@ only — it never changes the verdict tier. Present it as context, not as a \
 scoring factor.
 - Keep responses conversational and concise — you're a real estate agent's \
 assistant in a live conversation, not a report generator. For a single \
-address, lead with the verdict, then the one or two most important reasons, \
-then the single most cost-effective mitigation if relevant. For a \
-comparison, lead with the ranking and the standout best/worst, not a wall \
-of per-address detail."""
+hazard, lead with the verdict, then the one or two most important reasons, \
+then the single most cost-effective mitigation if relevant. For \
+full_risk_report, lead with the overall verdict and which hazard is driving \
+it, then briefly note the other two. For a comparison, lead with the ranking \
+and the standout best/worst, not a wall of per-address detail."""
 
 CHECK_INSURABILITY_SCHEMA = {
     "name": "check_insurability",
@@ -173,11 +216,11 @@ COMPARE_ADDRESSES_SCHEMA = {
 ASK_ABOUT_LOCATION_SCHEMA = {
     "name": "ask_about_location",
     "description": (
-        "Answers an open-ended question about a California address that is "
-        "NOT about wildfire insurability risk (schools, demographics, flood "
-        "zone detail, nearby amenities, etc.). Never use this for anything "
-        "that should inform an insurability verdict — use check_insurability "
-        "or compare_addresses for that instead."
+        "Answers an open-ended question about a US address that is NOT "
+        "about wildfire, flood, or earthquake insurability risk (schools, "
+        "demographics, nearby amenities, etc.). Never use this for anything "
+        "that should inform a hazard verdict — use check_insurability, "
+        "check_flood_risk, check_earthquake_risk, or full_risk_report instead."
     ),
     "input_schema": {
         "type": "object",
@@ -195,7 +238,83 @@ ASK_ABOUT_LOCATION_SCHEMA = {
     },
 }
 
-TOOLS = [CHECK_INSURABILITY_SCHEMA, COMPARE_ADDRESSES_SCHEMA, ASK_ABOUT_LOCATION_SCHEMA]
+CHECK_FLOOD_RISK_SCHEMA = {
+    "name": "check_flood_risk",
+    "description": (
+        "Flood insurability triage for a single US street address. Returns "
+        "a verdict (likely_insurable / harder_to_place / likely_hard_to_place "
+        "/ low_confidence), driving factors, a ranked flood-mitigation list "
+        "with cost ranges, data sources, and a disclaimer. Verdict is driven "
+        "by whether the parcel is inside a FEMA Special Flood Hazard Area "
+        "(SFHA) — the NFIP's mandatory-purchase trigger for federally-backed "
+        "mortgages. Works for any US address, not just California."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "address": {
+                "type": "string",
+                "description": "A US street address, e.g. '100 Ocean Dr, Miami Beach, FL 33139'.",
+            },
+        },
+        "required": ["address"],
+    },
+}
+
+CHECK_EARTHQUAKE_RISK_SCHEMA = {
+    "name": "check_earthquake_risk",
+    "description": (
+        "Earthquake insurability triage for a single US street address. "
+        "Returns a verdict (likely_insurable / harder_to_place / "
+        "likely_hard_to_place / low_confidence), driving factors, a ranked "
+        "seismic-retrofit mitigation list with cost ranges, data sources, "
+        "and a disclaimer. Verdict is driven by ASCE 7-22 Seismic Design "
+        "Category (A-F) at the parcel — a building-code classification, not "
+        "an insurance-purchase mandate. Works for any US address."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "address": {
+                "type": "string",
+                "description": "A US street address, e.g. '100 Ocean Dr, Miami Beach, FL 33139'.",
+            },
+        },
+        "required": ["address"],
+    },
+}
+
+FULL_RISK_REPORT_SCHEMA = {
+    "name": "full_risk_report",
+    "description": (
+        "Combined multi-hazard property risk report for a single US street "
+        "address — runs the wildfire, flood, and earthquake sub-agents and "
+        "returns one overall_verdict (the worst of the three) plus each "
+        "hazard's own verdict and top driving factor. Use this instead of "
+        "calling check_insurability, check_flood_risk, and "
+        "check_earthquake_risk separately when the user wants the full "
+        "picture on a property rather than one specific hazard."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "address": {
+                "type": "string",
+                "description": "A US street address.",
+            },
+        },
+        "required": ["address"],
+    },
+}
+
+TOOLS = [
+    CHECK_INSURABILITY_SCHEMA,
+    CHECK_FLOOD_RISK_SCHEMA,
+    CHECK_EARTHQUAKE_RISK_SCHEMA,
+    FULL_RISK_REPORT_SCHEMA,
+    COMPARE_ADDRESSES_SCHEMA,
+    ASK_ABOUT_LOCATION_SCHEMA,
+]
 
 
 class InsurabilityAgent:
@@ -246,6 +365,47 @@ class InsurabilityAgent:
                     "lng": result.get("lng"),
                     "parcel_boundary_geojson": result.get("parcel_boundary_geojson"),
                     "fire_station": result.get("fire_station"),
+                }
+            elif name == "check_flood_risk":
+                address = tool_input.get("address", "")
+                if self._verbose:
+                    print(f"  [agent] calling check_flood_risk(address={address!r})")
+                result = _tool_check_flood_risk(address)
+                trace = {
+                    "tool": name,
+                    "input": {"address": address},
+                    "verdict": result.get("verdict"),
+                    "data_source_mode": result.get("data_source_mode"),
+                    "lat": result.get("lat"),
+                    "lng": result.get("lng"),
+                    "parcel_boundary_geojson": result.get("parcel_boundary_geojson"),
+                }
+            elif name == "check_earthquake_risk":
+                address = tool_input.get("address", "")
+                if self._verbose:
+                    print(f"  [agent] calling check_earthquake_risk(address={address!r})")
+                result = _tool_check_earthquake_risk(address)
+                trace = {
+                    "tool": name,
+                    "input": {"address": address},
+                    "verdict": result.get("verdict"),
+                    "data_source_mode": result.get("data_source_mode"),
+                    "lat": result.get("lat"),
+                    "lng": result.get("lng"),
+                    "parcel_boundary_geojson": result.get("parcel_boundary_geojson"),
+                }
+            elif name == "full_risk_report":
+                address = tool_input.get("address", "")
+                if self._verbose:
+                    print(f"  [agent] calling full_risk_report(address={address!r})")
+                result = _tool_full_risk_report(address)
+                trace = {
+                    "tool": name,
+                    "input": {"address": address},
+                    "overall_verdict": result.get("overall_verdict"),
+                    "hazards": result.get("hazards", []),
+                    "lat": result.get("lat"),
+                    "lng": result.get("lng"),
                 }
             elif name == "compare_addresses":
                 addresses = tool_input.get("addresses", [])

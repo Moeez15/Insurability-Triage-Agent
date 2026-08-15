@@ -4,11 +4,21 @@ from mcp_server.narrate import narrate
 from mcp_server.server import (
     _resolve_and_fetch,
     _tool_ask_about_location,
+    _tool_check_earthquake_risk,
+    _tool_check_flood_risk,
     _tool_check_insurability,
     _tool_compare_addresses,
+    _tool_full_risk_report,
 )
 from mireye_client.client import GeocodeResult, MireyeRetryableError
-from tests.fixtures import EVERGREEN_CO_FETCH, LOW_RISK_CA_FETCH, PARADISE_CA_FETCH
+from tests.fixtures import (
+    EVERGREEN_CO_FETCH,
+    GUERNEVILLE_FLOOD_FETCH,
+    LOW_RISK_CA_FETCH,
+    MIAMI_BEACH_FLOOD_FETCH,
+    PARADISE_CA_FETCH,
+    PARADISE_EARTHQUAKE_FETCH,
+)
 
 
 class TestNarrationFallback:
@@ -210,6 +220,180 @@ class TestCompareAddresses:
     def test_empty_list_returns_empty_results(self):
         result = _tool_compare_addresses([])
         assert result["results"] == []
+
+
+class TestCheckFloodRiskTool:
+    def test_end_to_end_with_mocked_live_client(self, monkeypatch):
+        import mcp_server.server as server_mod
+
+        class FakeClient:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_a):
+                pass
+
+            def geocode(self, address):
+                return GeocodeResult(
+                    lat=25.769783,
+                    lng=-80.133277,
+                    accuracy=1.0,
+                    accuracy_type="rooftop",
+                    normalized_address=address,
+                    provider="geocodio",
+                )
+
+            def fetch_with_retry(self, lat, lng, preset, max_retries=1):
+                assert preset == "flood_risk"
+                return MIAMI_BEACH_FLOOD_FETCH
+
+            def lookup_parcel(self, address):
+                return None
+
+        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+        result = _tool_check_flood_risk("100 Ocean Dr, Miami Beach, FL 33139")
+        assert result["verdict"] == "likely_hard_to_place"
+        assert result["data_source_mode"] == "live"
+        assert "narration" in result
+        assert result["mitigations"]
+        assert "fire_station" not in result
+
+    def test_outside_sfha_is_likely_insurable(self, monkeypatch):
+        import mcp_server.server as server_mod
+
+        class FakeClient:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_a):
+                pass
+
+            def geocode(self, address):
+                return GeocodeResult(
+                    lat=38.502246, lng=-122.997475, accuracy=1.0,
+                    accuracy_type="rooftop", normalized_address=address, provider="geocodio",
+                )
+
+            def fetch_with_retry(self, lat, lng, preset, max_retries=1):
+                return GUERNEVILLE_FLOOD_FETCH
+
+            def lookup_parcel(self, address):
+                return None
+
+        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+        result = _tool_check_flood_risk("16209 Main St, Guerneville, CA 95446")
+        assert result["verdict"] == "likely_insurable"
+
+
+class TestCheckEarthquakeRiskTool:
+    def test_end_to_end_with_mocked_live_client(self, monkeypatch):
+        import mcp_server.server as server_mod
+
+        class FakeClient:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_a):
+                pass
+
+            def geocode(self, address):
+                return GeocodeResult(
+                    lat=39.749521, lng=-121.63408, accuracy=1.0,
+                    accuracy_type="rooftop", normalized_address=address, provider="geocodio",
+                )
+
+            def fetch_with_retry(self, lat, lng, preset, max_retries=1):
+                assert preset == "natural_hazard"
+                return PARADISE_EARTHQUAKE_FETCH
+
+            def lookup_parcel(self, address):
+                return None
+
+        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+        result = _tool_check_earthquake_risk("5555 Skyway, Paradise, CA 95969")
+        assert result["verdict"] == "harder_to_place"
+        assert result["data_source_mode"] == "live"
+        assert "narration" in result
+        assert result["mitigations"]
+        assert "fire_station" not in result
+
+
+class TestFullRiskReportTool:
+    def _patch_all_three(self, monkeypatch, wildfire_verdict, flood_verdict, earthquake_verdict):
+        import mcp_server.server as server_mod
+
+        def fake_result(verdict, driving_factor):
+            return {
+                "verdict": verdict,
+                "driving_factors": [driving_factor] if driving_factor else [],
+                "narration": f"narrated {verdict}",
+                "lat": 39.7,
+                "lng": -121.6,
+            }
+
+        monkeypatch.setattr(
+            server_mod, "_tool_check_insurability",
+            lambda address, _enrich=True: fake_result(wildfire_verdict, "wildfire factor"),
+        )
+        monkeypatch.setattr(
+            server_mod, "_tool_check_flood_risk",
+            lambda address, _enrich=True: fake_result(flood_verdict, "flood factor"),
+        )
+        monkeypatch.setattr(
+            server_mod, "_tool_check_earthquake_risk",
+            lambda address, _enrich=True: fake_result(earthquake_verdict, "earthquake factor"),
+        )
+
+    def test_overall_verdict_is_the_worst_of_the_three(self, monkeypatch):
+        self._patch_all_three(
+            monkeypatch,
+            wildfire_verdict="likely_insurable",
+            flood_verdict="likely_hard_to_place",
+            earthquake_verdict="harder_to_place",
+        )
+        result = _tool_full_risk_report("some address")
+        assert result["overall_verdict"] == "likely_hard_to_place"
+
+    def test_returns_one_entry_per_hazard(self, monkeypatch):
+        self._patch_all_three(monkeypatch, "likely_insurable", "likely_insurable", "likely_insurable")
+        result = _tool_full_risk_report("some address")
+        hazards = {h["hazard"] for h in result["hazards"]}
+        assert hazards == {"wildfire", "flood", "earthquake"}
+
+    def test_low_confidence_hazards_excluded_from_worst_calculation(self, monkeypatch):
+        self._patch_all_three(
+            monkeypatch,
+            wildfire_verdict="low_confidence",
+            flood_verdict="likely_insurable",
+            earthquake_verdict="likely_insurable",
+        )
+        result = _tool_full_risk_report("some address")
+        # low_confidence must not accidentally "win" as best or worst.
+        assert result["overall_verdict"] == "likely_insurable"
+
+    def test_all_low_confidence_falls_back_to_low_confidence(self, monkeypatch):
+        self._patch_all_three(monkeypatch, "low_confidence", "low_confidence", "low_confidence")
+        result = _tool_full_risk_report("some address")
+        assert result["overall_verdict"] == "low_confidence"
+
+    def test_never_lets_one_hazard_score_another(self, monkeypatch):
+        self._patch_all_three(
+            monkeypatch,
+            wildfire_verdict="likely_hard_to_place",
+            flood_verdict="likely_insurable",
+            earthquake_verdict="likely_insurable",
+        )
+        result = _tool_full_risk_report("some address")
+        by_hazard = {h["hazard"]: h["verdict"] for h in result["hazards"]}
+        assert by_hazard["wildfire"] == "likely_hard_to_place"
+        assert by_hazard["flood"] == "likely_insurable"
+        assert by_hazard["earthquake"] == "likely_insurable"
 
 
 class TestAskAboutLocation:
