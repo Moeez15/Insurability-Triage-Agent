@@ -37,8 +37,8 @@ export default function AddressScreen({ onSubmit, onBack }: AddressScreenProps) 
           What address should I work with?
         </h2>
         <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-          Any California property address — I&apos;ll geocode it and check
-          the wildfire hazard zone.
+          Any US property address — I&apos;ll geocode it and check wildfire,
+          flood, and earthquake risk.
         </p>
 
         <input

@@ -16,12 +16,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 type Stage = "intro" | "address" | "chat";
 
+const SINGLE_ADDRESS_HAZARD_TOOLS = new Set([
+  "check_insurability",
+  "check_flood_risk",
+  "check_earthquake_risk",
+  "full_risk_report",
+]);
+
 function mapPointsFor(toolCalls?: ToolCall[]): MapPoint[] {
   if (!toolCalls) return [];
   const points: MapPoint[] = [];
   for (const call of toolCalls) {
-    if (call.tool === "check_insurability" && call.lat != null && call.lng != null) {
-      points.push({ address: call.input.address || "", lat: call.lat, lng: call.lng, verdict: call.verdict });
+    if (SINGLE_ADDRESS_HAZARD_TOOLS.has(call.tool) && call.lat != null && call.lng != null) {
+      const verdict = call.tool === "full_risk_report" ? call.overall_verdict : call.verdict;
+      points.push({ address: call.input.address || "", lat: call.lat, lng: call.lng, verdict });
     } else if (call.tool === "compare_addresses") {
       for (const r of call.results || []) {
         if (r.lat != null && r.lng != null) {
@@ -34,7 +42,9 @@ function mapPointsFor(toolCalls?: ToolCall[]): MapPoint[] {
 }
 
 function parcelBoundaryFor(toolCalls?: ToolCall[]): string | null {
-  const check = toolCalls?.find((c) => c.tool === "check_insurability");
+  const check = toolCalls?.find(
+    (c) => SINGLE_ADDRESS_HAZARD_TOOLS.has(c.tool) && c.parcel_boundary_geojson
+  );
   return check?.parcel_boundary_geojson ?? null;
 }
 
@@ -105,7 +115,7 @@ export default function Chat() {
 
   function handleAddressSubmit(address: string) {
     transitionTo("chat");
-    send(`Is ${address} hard to insure?`);
+    send(`Give me the full risk picture for ${address}.`);
   }
 
   return (
@@ -132,8 +142,8 @@ export default function Chat() {
               Insurability Triage Agent
             </h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Wildfire insurability triage for California addresses — built
-              on Mireye + California&apos;s Safer From Wildfires regulation.
+              Multi-hazard property insurability triage — wildfire, flood,
+              and earthquake, built on Mireye.
             </p>
           </header>
 
@@ -196,7 +206,7 @@ export default function Chat() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about a California address…"
+                placeholder="Ask about a property address…"
                 className="h-11 flex-1 rounded-full border border-zinc-300 bg-white px-4 text-sm text-zinc-900 outline-none focus:border-amber-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-amber-500"
               />
               <button

@@ -6,12 +6,12 @@ interface IntroScreenProps {
 
 const CAPABILITIES = [
   {
-    title: "Check insurability",
-    detail: "Get a clear verdict on any listing, backed by CAL FIRE hazard data.",
+    title: "Check wildfire, flood & earthquake risk",
+    detail: "One report, three independent verdicts — CAL FIRE, FEMA, and USGS/ASCE data.",
   },
   {
     title: "Price the fix",
-    detail: "See which mitigation would change the verdict, and what it costs.",
+    detail: "See which mitigation would change a verdict, and what it costs.",
   },
   {
     title: "Compare a listing book",
@@ -27,7 +27,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
     >
       <div className="flex w-full max-w-lg flex-col items-center text-center">
         <h1 className="text-3xl font-semibold tracking-tight text-balance text-zinc-900 sm:text-4xl md:text-5xl dark:text-zinc-50">
-          Your AI agent for wildfire insurability triage
+          Your AI agent for property risk triage
         </h1>
         <p className="mt-4 text-base text-balance text-zinc-500 dark:text-zinc-400">
           Tell me an address, and I&apos;ll tell you if it&apos;s insurable —
@@ -62,8 +62,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
         </button>
 
         <p className="mt-6 text-xs text-zinc-400 dark:text-zinc-600">
-          Powered by Mireye &middot; California&apos;s Safer From Wildfires
-          regulation
+          Powered by Mireye &middot; CAL FIRE, FEMA &amp; USGS data
         </p>
       </div>
     </div>

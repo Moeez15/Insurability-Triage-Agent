@@ -16,6 +16,13 @@ export type FireStationInfo = {
   destination_match_confidence: number | null;
 };
 
+export type HazardEntry = {
+  hazard: string;
+  verdict: string;
+  top_driving_factor?: string | null;
+  narration?: string | null;
+};
+
 export type ToolCall = {
   tool: string;
   input: {
@@ -24,7 +31,7 @@ export type ToolCall = {
     addresses?: string[];
     question?: string;
   };
-  // check_insurability shape
+  // check_insurability / check_flood_risk / check_earthquake_risk shape
   verdict?: string | null;
   data_source_mode?: string | null;
   lat?: number | null;
@@ -34,6 +41,9 @@ export type ToolCall = {
   // compare_addresses shape
   results?: CompareResultEntry[];
   summary?: string | null;
+  // full_risk_report shape
+  overall_verdict?: string | null;
+  hazards?: HazardEntry[];
   // ask_about_location shape
   confidence?: string | null;
 };
