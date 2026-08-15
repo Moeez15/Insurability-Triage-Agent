@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useRef, useState, type FormEvent } from "react";
 import type { ChatMessage, ChatResponse, ToolCall } from "../types";
 import ToolCallChip from "./ToolCallChip";
+import MarkdownMessage from "./MarkdownMessage";
 import type { MapPoint } from "./AddressMap";
 
 // Leaflet touches window/document at import time — must not run during SSR.
@@ -144,7 +145,11 @@ export default function Chat() {
                   {points.length > 0 && (
                     <AddressMap points={points} parcelBoundaryGeojson={parcelBoundary} />
                   )}
-                  {m.content}
+                  {m.role === "assistant" ? (
+                    <MarkdownMessage content={m.content} />
+                  ) : (
+                    m.content
+                  )}
                 </div>
               </div>
             );
