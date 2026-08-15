@@ -1,79 +1,41 @@
 # Insurability Triage Agent
 
-Multi-hazard property insurability triage for a US street address —
-combines [Mireye](https://www.mireye.com/)'s physical/regulatory hazard
-data with real regulatory hooks for each hazard (California's **Safer
-From Wildfires** mitigation regulation, FEMA's NFIP mandatory flood
-insurance trigger, ASCE 7 seismic design category) to produce a specific,
-actionable verdict per hazard: is this address likely to be hard to place
-with an insurer, and what mitigation work would change that.
+## The problem
 
+Wildfire, flood, and earthquake risk can make a home hard to insure — but
+finding that out today means checking CAL FIRE, FEMA, and USGS maps
+separately, then figuring out what the rules actually mean for
+insurability.
 
-## What it is
+## Who it helps
 
-A property-hazard triage **agent** for real estate agents and title
-companies, built around three hazard **sub-agents** — wildfire (California,
-CAL FIRE), flood (nationwide, FEMA), earthquake (nationwide, USGS/ASCE) —
-each its own independent (Mireye preset, deterministic rule table,
-mitigation list) triple sharing one fetch → score → narrate pipeline
-(`backend/tools/hazard_tools.py`'s `_HAZARD_PRESETS`). The top-level agent
-reasons about what you're asking, decides which sub-agent(s) to call,
-decides what arguments to pass (including re-scoring with `overrides` for
-a wildfire hypothetical like "what if they clear the brush?"), and decides
-how to present the result — real tool-use decisions, not a fixed script.
+Real estate agents and title companies who need a quick, plain-English
+answer before a deal moves forward: is this property going to be hard to
+insure, and what would fix it?
 
-- `check_insurability(address, overrides)` — wildfire, one address, in
-  depth. Also pulls the actual parcel boundary (`/v1/lookup`) and real
-  driving time to the nearest fire station (`/v1/proximity`) —
-  informational context only, never a scoring input. California only.
-- `check_flood_risk(address)` — flood, one address, in depth. Verdict
-  driven by whether the parcel is inside a FEMA Special Flood Hazard Area
-  (the NFIP's mandatory-purchase trigger). Any US address.
-- `check_earthquake_risk(address)` — earthquake, one address, in depth.
-  Verdict driven by ASCE 7-22 Seismic Design Category (A-F) — a
-  building-code trigger, explicitly not framed as an insurance mandate
-  (unlike flood/wildfire, CA has no legal requirement to carry earthquake
-  coverage). Any US address.
-- `full_risk_report(address)` — orchestrates all three sub-agents for one
-  address and returns one `overall_verdict` (the worst of the three) plus
-  each hazard's own verdict and top driving factor. The address-entry
-  screen's default action.
-- `compare_addresses(addresses)` — two or more addresses, ranked by
-  **wildfire** risk (not multi-hazard). Powers both "compare these two"
-  and "scan my listing book" (Approach B) with one tool, since they're the
-  same operation at different N. When asked to check "my listings" without
-  addresses, the agent can pull a small hand-picked sample book
-  (`backend/data/sample_listings.json`) — clearly not a live MLS feed,
-  just enough real, geocode-verified addresses to demo the ranking. Skips
-  the parcel/fire-station enrichment to stay fast across N addresses.
-- `ask_about_location(address, question)` — open-ended questions Mireye's
-  `/v1/ask` can answer that none of the three scorers cover (schools,
-  demographics, nearby amenities). Deliberately on a separate grounding
-  path from any verdict — its citations/confidence pass through as-is,
-  and it's never allowed to describe or adjust a hazard verdict.
+## What it does
 
-The chat UI renders a map (Leaflet, OpenStreetMap tiles, no API key) for
-every result — the actual parcel boundary polygon plus a pin for a single
-address, or bounds-fit color-coded pins for a comparison.
+Give it an address (or ask a question) and it checks:
+
+- **Wildfire** — California only. Also tells you what mitigation (like
+  clearing brush) would improve the outcome.
+- **Flood** — any US address. Based on FEMA flood zones.
+- **Earthquake** — any US address. Based on seismic building codes.
+
+It can check one address, compare several, scan a whole listing book, or
+answer open questions about a location (schools, amenities, etc). Results
+show on a map, and you can ask "what if" questions to see how mitigation
+changes the verdict.
+
+It's a real **agent** — built on Claude with tool use — so it decides what
+to check and how to answer based on what you ask, rather than following a
+fixed script.
 
 ```
 insurability-triage-agent/
 ├── backend/     Python — agent, scorer, Mireye client, hazard tools, FastAPI wrapper
 └── frontend/    Next.js — chat UI (primary demo path)
 ```
-
-Two front doors onto the same backend logic (`backend/tools/`,
-`backend/mireye_client/`, `backend/scorer/`, `backend/data/` — no
-duplicated logic):
-
-- **`frontend/` + `backend/api/`** — a Next.js chat UI backed by a thin
-  FastAPI wrapper around the agent. **This is the primary demo path.** The
-  UI shows the agent's tool calls transparently (which address it checked,
-  the verdict, and any counterfactual assumptions) so it visibly reasons
-  and acts, not just answers.
-- **`backend/agent/agent.py`** — the actual agent: Claude + native tool-use
-  (no LangGraph, no MCP indirection — the agent calls its tools as plain
-  Python functions), runnable standalone as a CLI too.
 
 ## Setup
 
@@ -85,14 +47,13 @@ pip install -r requirements.txt
 cp .env.example .env   # fill in MIREYE_API_TOKEN (required) and ANTHROPIC_API_KEY (optional)
 ```
 
-`ANTHROPIC_API_KEY` is required for `agent/agent.py` (it's the agent's
-reasoning). Without it, `tools/hazard_tools.py`'s functions still work on
-their own — narration falls back to a plain-text rendering of the
-structured verdict instead of an LLM-written paragraph.
+`ANTHROPIC_API_KEY` powers the agent's reasoning. Without it, the hazard
+checks still work, but you get plain-text output instead of an
+LLM-written summary.
 
 ## Run the web UI (primary demo path)
 
-Two processes, two terminals, from the repo root:
+Two terminals, from the repo root:
 
 ```bash
 # Terminal 1 — backend
@@ -132,41 +93,50 @@ source .venv/bin/activate
 pytest -v
 ```
 
-## Architecture
-
-```
-Next.js chat UI (frontend/, renders a Leaflet map per result)
-    -> FastAPI (backend/api/main.py, one InsurabilityAgent per session)
-        -> backend/agent/agent.py (Claude + tool-use loop — decides which
-           tool/sub-agent to call)
-            -> check_insurability(address, overrides)   [wildfire, CA only]
-            -> check_flood_risk(address)                 [flood, any US address]
-            -> check_earthquake_risk(address)             [earthquake, any US address]
-            -> full_risk_report(address)                 [orchestrates the three above]
-            -> compare_addresses(addresses)              [wildfire, ranked, N addresses]
-                -> Mireye /v1/geocode -> /v1/fetch(preset=<hazard's preset>)
-                -> deterministic scorer (backend/scorer/*_rule_table.py)
-                -> LLM narration (backend/tools/narrate.py, narrates only, never scores)
-```
-
-Each hazard sub-agent is one entry in `backend/tools/hazard_tools.py`'s
-`_HAZARD_PRESETS` dict: a (Mireye preset, scorer function) pair sharing
-one fetch → score → enrich → narrate pipeline (`_tool_check_hazard`).
-Adding a fourth hazard means adding one entry there plus a
-`scorer/*_rule_table.py` module — not touching wildfire, flood, or
-earthquake. `full_risk_report` is the one tool that orchestrates all
-three; every other tool calls exactly one sub-agent, and `compare_addresses`
-reuses `check_insurability`'s exact pipeline per address — no duplicated
-logic anywhere, just a loop plus a rank-by-severity sort.
-
-If a live Mireye call fails, falls back to a small cache of pre-verified
-demo addresses (`backend/data/demo_cache.json`, one entry per hazard
-preset under `fetch_by_preset`) rather than stalling a live demo.
-
 ## Scope (v1)
 
-Wildfire (`check_insurability`, `compare_addresses`) is California only —
-Mireye's CAL FIRE Fire Hazard Severity Zone data is explicitly
-California-only (live-verified). Flood and earthquake work for any US
-address (FEMA NFHL and USGS/ASCE data are nationwide). See the design
-doc's Constraints and Next Steps for further expansion plans.
+Wildfire checks are California only. Flood and earthquake checks work
+nationwide.
+
+## How it works
+
+One agent, one reasoning loop. It doesn't run three separate agents — it
+just has three hazard checks (plus a couple of helper tools) it can pick
+from, and it decides which ones to use.
+
+```mermaid
+flowchart TD
+    User["You: an address or question"]
+    Agent["The Agent\n(Claude, decides what to do)"]
+
+    User --> Agent
+
+    Agent --> W["Check Wildfire\n(CA only)"]
+    Agent --> F["Check Flood\n(any US address)"]
+    Agent --> E["Check Earthquake\n(any US address)"]
+    Agent --> All["Full Risk Report\n(runs all three)"]
+    Agent --> Cmp["Compare Addresses\n(rank a list)"]
+
+    W --> Data["Look up hazard data,\napply the rules,\nwrite the verdict"]
+    F --> Data
+    E --> Data
+    All --> W
+    All --> F
+    All --> E
+    Cmp --> Data
+
+    Data --> Result["Verdict + explanation"]
+    Result --> UI["Shown in chat, with a map"]
+```
+
+Every hazard check follows the same three steps: look up the data, apply
+a fixed set of rules to score it, then explain the verdict in plain
+language. Adding a new hazard later just means plugging into that same
+pipeline.
+
+Two ways to use it, same logic underneath:
+
+- **Web UI** (`frontend/` + `backend/api/`) — the chat interface, and the
+  primary way to demo this.
+- **CLI** (`backend/agent/agent.py`) — the same agent, runnable directly
+  in a terminal.
