@@ -157,8 +157,10 @@ export default function Chat() {
 
           {loading && (
             <div className="flex justify-start">
-              <div className="max-w-[85%] rounded-2xl bg-white px-4 py-3 text-sm text-zinc-400 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800">
-                thinking…
+              <div className="flex max-w-[85%] items-center gap-1.5 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400" />
               </div>
             </div>
           )}
