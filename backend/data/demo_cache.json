@@ -1,0 +1,145 @@
+{
+  "_comment": "Pre-fetched, live-verified responses for demo-day fallback if the live Mireye API is slow/down when a judge types an address (cross-model tension 4). Captured 2026-08-14 during /plan-eng-review.",
+  "5555 Skyway, Paradise, CA 95969": {
+    "geocode": {
+      "lat": 39.749521,
+      "lng": -121.63408,
+      "accuracy": 1.0,
+      "accuracy_type": "rooftop",
+      "match_type": "building_centroid",
+      "normalized_address": "5555 Skyway, Paradise, CA 95969",
+      "provider": "geocodio",
+      "source": "Butte (Butte County)"
+    },
+    "fetch": {
+      "lat": 39.749521,
+      "lng": -121.63408,
+      "fields": {
+        "fire_hazard_severity_zone_class": {
+          "value": "Very High",
+          "unit": null,
+          "source": "CALFIRE_FHSZ",
+          "source_url": "https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/FHSALRA25_v1_All/FeatureServer/0",
+          "confidence": "high",
+          "notes": "CAL FIRE LRA Fire Hazard Severity Zone at the point (FHSZ code 3); read with fire_hazard_responsibility_area, which decides what the class legally means.",
+          "status": "ok"
+        },
+        "fire_hazard_responsibility_area": {
+          "value": "LRA",
+          "unit": null,
+          "source": "CALFIRE_FHSZ",
+          "source_url": "https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/FHSALRA25_v1_All/FeatureServer/0",
+          "confidence": "high",
+          "notes": "responsibility area from the SRA attribute of the same CAL FIRE LRA polygon that carries the FHSZ class.",
+          "status": "ok"
+        },
+        "lcms_class": {
+          "value": "Barren or Impervious",
+          "unit": null,
+          "source": "USFS_LCMS",
+          "confidence": "medium",
+          "status": "ok"
+        },
+        "tree_canopy_pct": {
+          "value": 0.0,
+          "unit": "percent",
+          "source": "USFS_NLCD_TCC",
+          "confidence": "high",
+          "status": "ok"
+        },
+        "ndvi_current": {
+          "value": 0.032258063554763794,
+          "unit": null,
+          "source": "COPERNICUS_S2_SR_HARMONIZED",
+          "confidence": "high",
+          "status": "ok"
+        },
+        "ndvi_change_5y": {
+          "value": -0.024076666682958603,
+          "unit": null,
+          "source": "COPERNICUS_S2_SR_HARMONIZED",
+          "confidence": "medium",
+          "status": "ok"
+        },
+        "slope_degrees": {
+          "value": 1.8932799100875854,
+          "unit": "degrees",
+          "source": "USGS_3DEP_COG",
+          "confidence": "medium",
+          "status": "ok"
+        },
+        "elevation": {
+          "value": 492.79522705078125,
+          "unit": "meters",
+          "source": "USGS_3DEP_COG",
+          "confidence": "medium",
+          "status": "ok"
+        }
+      },
+      "partial_failures": []
+    }
+  },
+  "29029 Upper Bear Creek Rd, Evergreen, CO 80439": {
+    "geocode": {
+      "lat": 39.633634,
+      "lng": -105.329915,
+      "accuracy": 1.0,
+      "accuracy_type": "rooftop",
+      "match_type": "building_centroid",
+      "normalized_address": "29029 Upper Bear Creek Rd, Evergreen, CO 80439",
+      "provider": "geocodio",
+      "source": "Jefferson (Jefferson County)"
+    },
+    "fetch": {
+      "lat": 39.633634,
+      "lng": -105.329915,
+      "fields": {
+        "fire_hazard_severity_zone_class": {
+          "value": null,
+          "unit": null,
+          "source": "CALFIRE_FHSZ",
+          "confidence": "high",
+          "notes": "the point is outside California — it falls outside the California bounding box entirely, so neither CAL FIRE layer was queried. CAL FIRE FHSZ is a California-only regulatory product and does not apply here. Not applicable, NOT a finding of no wildfire hazard.",
+          "status": "absent"
+        },
+        "fire_hazard_responsibility_area": {
+          "value": null,
+          "unit": null,
+          "source": "CALFIRE_FHSZ",
+          "confidence": "high",
+          "notes": "the point is outside California — it falls outside the California bounding box entirely, so neither CAL FIRE layer was queried. CAL FIRE FHSZ is a California-only regulatory product and does not apply here. Not applicable, NOT a finding of no wildfire hazard.",
+          "status": "absent"
+        },
+        "tree_canopy_pct": {
+          "value": 18.0,
+          "unit": "percent",
+          "source": "USFS_NLCD_TCC",
+          "confidence": "high",
+          "status": "ok"
+        },
+        "lcms_class": {
+          "value": "Trees",
+          "unit": null,
+          "source": "USFS_LCMS",
+          "confidence": "medium",
+          "status": "ok"
+        },
+        "slope_degrees": {
+          "value": 6.348572731018066,
+          "unit": "degrees",
+          "source": "USGS_3DEP_COG",
+          "confidence": "medium",
+          "status": "ok"
+        },
+        "elevation": {
+          "value": 2162.692626953125,
+          "unit": "meters",
+          "source": "USGS_3DEP_COG",
+          "confidence": "medium",
+          "status": "ok"
+        }
+      },
+      "partial_failures": []
+    }
+  }
+}

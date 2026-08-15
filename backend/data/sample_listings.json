@@ -1,0 +1,11 @@
+{
+  "_comment": "A small, hand-picked sample listing book for the batch/compare demo — NOT a live MLS feed (real MLS access is gated/paid, per the design doc's Approach B constraint). Every address here is verified to geocode successfully; verdicts are computed live at request time, not precomputed or fabricated.",
+  "addresses": [
+    "5555 Skyway, Paradise, CA 95969",
+    "19000 Mulholland Dr, Los Angeles, CA 90024",
+    "1111 Broadway, Oakland, CA 94607",
+    "2001 Junipero Serra Blvd, Daly City, CA 94014",
+    "1 Market St, San Francisco, CA 94105",
+    "28001 Silverado Canyon Rd, Silverado, CA 92676"
+  ]
+}

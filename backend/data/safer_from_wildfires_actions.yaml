@@ -1,0 +1,75 @@
+# California Safer From Wildfires mitigation actions (CA Insurance Code
+# Section 2644.9 / 10 CCR 2644.9, effective 2022-10-14). Every admitted
+# property insurer using wildfire risk in pricing must offer a premium
+# discount for each documented action below. 12 actions across 3 categories,
+# cross-checked against two independent sources (see `source_urls`).
+#
+# Discount magnitude is carrier- and rate-filing-specific and is NOT stated
+# per-action in public sources — do not fabricate a number here. Aggregate
+# ranges are cited at the bottom for context only.
+
+source_urls:
+  - https://uphelp.org/californias-safer-from-wildfires-shows-how-to-protect-homes-get-insurance-discounts/
+  - https://fireroofs.com/wildfire-insurance-discounts-california
+  - https://www.insurance.ca.gov/01-consumers/105-type/95-guides/03-res/upload/FAQ-Safer-from-Wildfire-Regulation.pdf
+
+aggregate_discount_context: >
+  Reported realistic range is under 1% to 20% of premium per credited item,
+  and up to 16.4% (Dwelling Fire) / 14.6% (Homeowners) off the wildfire
+  portion of a CA FAIR Plan policy when all 12 actions apply. Individual
+  per-action percentages vary by carrier and rate filing and are not
+  published — the agent must not claim a specific per-action discount %.
+
+categories:
+  defensible_space:
+    label: "Defensible Space"
+    actions:
+      - id: prc_4291_compliance
+        name: "PRC 4291 defensible space compliance"
+        description: >
+          100 ft (or to property line) defensible space clearance per
+          California Public Resources Code 4291 — the baseline requirement
+          most other defensible-space credit depends on.
+      - id: noncombustible_wall_base_clearance
+        name: "Noncombustible clearance at base of exterior walls"
+        description: "6-inch noncombustible zone at the base of exterior walls."
+      - id: combustible_structure_30ft_removal
+        name: "Removal or noncombustibility of combustible structures within 30 ft"
+        description: >
+          Sheds, woodpiles, and other combustible outbuildings removed or
+          made noncombustible within 30 ft of the structure.
+      - id: noncombustible_fencing_5ft
+        name: "Noncombustible fencing/gates within 5 ft of structure"
+        description: "Fencing and gates within 5 ft of the structure are noncombustible."
+
+  home_hardening:
+    label: "Home Hardening"
+    actions:
+      - id: class_a_roof
+        name: "Class A fire-rated roof assembly"
+        description: "Roof covering assembly rated Class A for fire resistance."
+      - id: enclosed_eaves
+        name: "Enclosed eaves with ignition-resistant materials"
+        description: "Eaves are enclosed (boxed) using ignition-resistant materials."
+      - id: ember_resistant_vents
+        name: "Ember- and fire-resistant vents"
+        description: "Attic, crawlspace, and foundation vents are ember- and flame-resistant."
+      - id: multipane_windows
+        name: "Multi-pane exterior windows"
+        description: "Exterior windows are double- (or multi-) paned, or fitted with shutters."
+      - id: fire_resistant_siding
+        name: "Fire-resistant exterior wall cladding"
+        description: "Exterior wall cladding/siding is noncombustible or fire-resistant."
+      - id: spark_arrestor_chimney
+        name: "Spark arrestor on chimney"
+        description: "Chimney and stovepipe outlets fitted with an approved spark arrestor."
+
+  community_level:
+    label: "Community-Level"
+    actions:
+      - id: fire_risk_reduction_community
+        name: "Fire Risk Reduction Community designation"
+        description: "Property sits within a CAL FIRE-recognized Fire Risk Reduction Community."
+      - id: firewise_usa_site
+        name: "Firewise USA site in good standing"
+        description: "Property sits within an active, good-standing Firewise USA site."

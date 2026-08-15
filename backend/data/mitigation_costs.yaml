@@ -1,0 +1,67 @@
+# Rough regional cost estimates for Safer From Wildfires actions, sourced
+# separately from the hazard/regulation data per the design doc's Data Gaps
+# & Fallbacks section (Mireye and the CDI regulation give hazard/action
+# data, not cost data). Ranges are 2026 industry cost-guide aggregates, not
+# a quote — every action here must carry this caveat when narrated.
+#
+# An action with no entry here must surface as an explicit gap in the
+# scorer output, never a fabricated number (see scorer/score.py).
+
+source_urls:
+  - https://firerisk.ai/defensible-space
+  - https://roofon.com/what-home-hardening-actually-costs-in-san-diego-and-why-it-pays-you-back/
+  - https://emberprousa.com/wildfire-defense-cost-calculator-california/
+
+caveat: >
+  Rough 2026 industry aggregates, not a quote. Actual cost depends on lot
+  size, terrain, home size, and local labor/material rates.
+
+costs_usd:
+  prc_4291_compliance:
+    low: 1500
+    high: 15000
+    note: "Initial defensible space creation; annual maintenance $500-3000 on top."
+  noncombustible_wall_base_clearance:
+    low: 500
+    high: 2000
+    note: "Often bundled into a defensible-space cleanup pass."
+  combustible_structure_30ft_removal:
+    low: 0
+    high: 2000
+    note: "DIY labor + disposal fees for removal; higher if structures are rebuilt elsewhere."
+  noncombustible_fencing_5ft:
+    low: 500
+    high: 3000
+    note: "Depends on linear feet of fencing within 5 ft of structure."
+  class_a_roof:
+    low: 8000
+    high: 25000
+    note: "Full Class A roof replacement; varies by material and home size."
+  enclosed_eaves:
+    low: 1000
+    high: 4000
+    note: "Fiber-cement or noncombustible soffit enclosure."
+  ember_resistant_vents:
+    low: 150
+    high: 4500
+    note: "Wide range depending on vent count and whether retrofit vs. new construction."
+  multipane_windows:
+    low: 2000
+    high: 10000
+    note: "Per-window cost varies widely; shutters are a cheaper partial substitute."
+  fire_resistant_siding:
+    low: 3000
+    high: 15000
+    note: "Depends on wall area and material (fiber cement vs. stucco vs. metal)."
+  spark_arrestor_chimney:
+    low: 100
+    high: 500
+    note: "Low-cost item, often the best risk-reduction-per-dollar action available."
+  fire_risk_reduction_community:
+    low: null
+    high: null
+    note: "Community-level designation — not a homeowner-purchasable action; no individual cost."
+  firewise_usa_site:
+    low: null
+    high: null
+    note: "Community-level designation — not a homeowner-purchasable action; no individual cost."
