@@ -8,9 +8,6 @@ insurance trigger, ASCE 7 seismic design category) to produce a specific,
 actionable verdict per hazard: is this address likely to be hard to place
 with an insurer, and what mitigation work would change that.
 
-Built for the Mireye "build an agent" hackathon challenge. Full design
-rationale, alternatives considered, and review history:
-[design doc](~/.gstack/projects/moeezahmad/moeezahmad-unknown-design-20260814-170826.md).
 
 ## What it is
 
@@ -19,7 +16,7 @@ companies, built around three hazard **sub-agents** — wildfire (California,
 CAL FIRE), flood (nationwide, FEMA), earthquake (nationwide, USGS/ASCE) —
 each its own independent (Mireye preset, deterministic rule table,
 mitigation list) triple sharing one fetch → score → narrate pipeline
-(`backend/mcp_server/server.py`'s `_HAZARD_PRESETS`). The top-level agent
+(`backend/tools/hazard_tools.py`'s `_HAZARD_PRESETS`). The top-level agent
 reasons about what you're asking, decides which sub-agent(s) to call,
 decides what arguments to pass (including re-scoring with `overrides` for
 a wildfire hypothetical like "what if they clear the brush?"), and decides
@@ -61,12 +58,13 @@ address, or bounds-fit color-coded pins for a comparison.
 
 ```
 insurability-triage-agent/
-├── backend/     Python — agent, scorer, Mireye client, MCP tool, FastAPI wrapper
+├── backend/     Python — agent, scorer, Mireye client, hazard tools, FastAPI wrapper
 └── frontend/    Next.js — chat UI (primary demo path)
 ```
 
-Three front doors onto the same backend logic (`backend/mireye_client/`,
-`backend/scorer/`, `backend/data/` — no duplicated logic):
+Two front doors onto the same backend logic (`backend/tools/`,
+`backend/mireye_client/`, `backend/scorer/`, `backend/data/` — no
+duplicated logic):
 
 - **`frontend/` + `backend/api/`** — a Next.js chat UI backed by a thin
   FastAPI wrapper around the agent. **This is the primary demo path.** The
@@ -74,11 +72,8 @@ Three front doors onto the same backend logic (`backend/mireye_client/`,
   the verdict, and any counterfactual assumptions) so it visibly reasons
   and acts, not just answers.
 - **`backend/agent/agent.py`** — the actual agent: Claude + native tool-use
-  (no LangGraph), runnable standalone as a CLI too.
-- **`backend/mcp_server/server.py`** — the same `check_insurability` and
-  `compare_addresses` tools exposed over MCP, for anyone who wants to plug
-  them into their own MCP-capable host (Claude Desktop, Claude Code, etc.)
-  instead.
+  (no LangGraph, no MCP indirection — the agent calls its tools as plain
+  Python functions), runnable standalone as a CLI too.
 
 ## Setup
 
@@ -91,9 +86,9 @@ cp .env.example .env   # fill in MIREYE_API_TOKEN (required) and ANTHROPIC_API_K
 ```
 
 `ANTHROPIC_API_KEY` is required for `agent/agent.py` (it's the agent's
-reasoning). Without it, `mcp_server/server.py`'s tool still works on its
-own — narration falls back to a plain-text rendering of the structured
-verdict instead of an LLM-written paragraph.
+reasoning). Without it, `tools/hazard_tools.py`'s functions still work on
+their own — narration falls back to a plain-text rendering of the
+structured verdict instead of an LLM-written paragraph.
 
 ## Run the web UI (primary demo path)
 
@@ -129,17 +124,6 @@ python -m agent.agent
 > Is that address in a flood zone that requires mandatory insurance?
 ```
 
-## Run the MCP server (alternate — plug into your own MCP host)
-
-```bash
-cd backend
-source .venv/bin/activate
-python -m mcp_server.server
-```
-
-Point an MCP-capable client at this process (stdio transport) to try it
-that way instead.
-
 ## Run the tests
 
 ```bash
@@ -162,10 +146,10 @@ Next.js chat UI (frontend/, renders a Leaflet map per result)
             -> compare_addresses(addresses)              [wildfire, ranked, N addresses]
                 -> Mireye /v1/geocode -> /v1/fetch(preset=<hazard's preset>)
                 -> deterministic scorer (backend/scorer/*_rule_table.py)
-                -> LLM narration (backend/mcp_server/narrate.py, narrates only, never scores)
+                -> LLM narration (backend/tools/narrate.py, narrates only, never scores)
 ```
 
-Each hazard sub-agent is one entry in `backend/mcp_server/server.py`'s
+Each hazard sub-agent is one entry in `backend/tools/hazard_tools.py`'s
 `_HAZARD_PRESETS` dict: a (Mireye preset, scorer function) pair sharing
 one fetch → score → enrich → narrate pipeline (`_tool_check_hazard`).
 Adding a fourth hazard means adding one entry there plus a
@@ -174,10 +158,6 @@ earthquake. `full_risk_report` is the one tool that orchestrates all
 three; every other tool calls exactly one sub-agent, and `compare_addresses`
 reuses `check_insurability`'s exact pipeline per address — no duplicated
 logic anywhere, just a loop plus a rank-by-severity sort.
-
-`backend/mcp_server/server.py` exposes all six tools over the MCP protocol
-as an alternate front door, for anyone with their own MCP host instead of
-this repo's UI.
 
 If a live Mireye call fails, falls back to a small cache of pre-verified
 demo addresses (`backend/data/demo_cache.json`, one entry per hazard

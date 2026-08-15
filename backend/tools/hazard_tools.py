@@ -1,4 +1,4 @@
-"""MCP server exposing multi-hazard property risk tools.
+"""Multi-hazard property risk tool implementations.
 
 Each hazard (wildfire, flood, earthquake) is its own sub-agent: an
 independent (Mireye preset, deterministic rule table, mitigation list)
@@ -7,16 +7,15 @@ hazard means adding one entry to _HAZARD_PRESETS and a scorer/*_rule_table
 module, not touching the others. full_risk_report is the one tool that
 orchestrates all three; every other tool calls exactly one sub-agent.
 
-No custom agent-loop framework (Premise 8) — whatever MCP host is
-connected (Claude Desktop, Claude Code, etc.) already handles multi-turn
-conversation and re-invokes check_insurability with follow-up `overrides`
-when a user asks a hypothetical like "what if I clear the brush?".
+These are plain functions called directly by agent/agent.py's tool-use
+loop (Premise 8: no MCP/agent-framework indirection between the agent and
+its own tools) — the underscore-prefixed names are the actual
+implementations; there is no separate public wrapper layer.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any
@@ -24,8 +23,6 @@ from typing import Any
 from dotenv import load_dotenv
 
 load_dotenv()
-
-from mcp.server.mcpserver import MCPServer  # noqa: E402
 
 from mireye_client.client import (  # noqa: E402
     AddressNotFoundError,
@@ -36,8 +33,8 @@ from mireye_client.client import (  # noqa: E402
     MireyeRetryableError,
     MireyeUnconfiguredError,
 )
-from mcp_server.narrate import narrate  # noqa: E402
 from scorer.score import score, score_earthquake, score_flood  # noqa: E402
+from tools.narrate import narrate  # noqa: E402
 
 _CITY_STATE_RE = re.compile(r",\s*([A-Za-z .]+),\s*([A-Z]{2})(?:\s+\d{5}(?:-\d{4})?)?\s*$")
 
@@ -52,17 +49,6 @@ _HAZARD_PRESETS: dict[str, tuple[str, Any]] = {
     "flood": ("flood_risk", score_flood),
     "earthquake": ("natural_hazard", score_earthquake),
 }
-
-mcp = MCPServer(
-    name="insurability-triage",
-    version="0.1.0",
-    description=(
-        "Multi-hazard property risk triage for a US address — wildfire "
-        "(California), flood (FEMA SFHA), and earthquake (USGS/ASCE seismic "
-        "design category) verdicts, driving factors, and mitigation lists. "
-        "Heuristic, not an actuarial or underwriting determination."
-    ),
-)
 
 
 def _load_demo_cache() -> dict:
@@ -255,28 +241,6 @@ def _tool_check_insurability(
     return result
 
 
-@mcp.tool()
-def check_insurability(address: str, overrides: dict[str, Any] | None = None) -> dict:
-    """Wildfire insurability triage for a California street address.
-
-    Args:
-        address: A US street address, e.g. "5555 Skyway, Paradise, CA 95969".
-        overrides: Optional hypothetical flags for counterfactual re-scoring,
-            e.g. {"defensible_space_cleared": true} or {"home_hardened": true}.
-            Used to answer follow-up questions like "what if I clear the
-            brush?" by re-running the real scorer, never a free-floating guess.
-
-    Returns:
-        address, lat, lng, verdict, driving_factors, mitigations (each with
-        a cost range and Safer From Wildfires recognition), data_sources,
-        missing_inputs, disclaimer, a plain-English narration,
-        parcel_boundary_geojson + parcel_apn (for mapping the actual
-        parcel, not just a pin), and fire_station (real drive time to the
-        nearest station — informational, not part of the verdict).
-    """
-    return _tool_check_insurability(address, overrides)
-
-
 def _empty_check_result(address: str, disclaimer: str, narration: str) -> dict:
     """Shared shape for the address-resolution failure branches (too
     coarse, not found, Mireye unavailable) across all hazard sub-agents."""
@@ -361,44 +325,6 @@ def _tool_check_earthquake_risk(address: str, _enrich: bool = True) -> dict:
     return _tool_check_hazard(address, "earthquake", _enrich=_enrich)
 
 
-@mcp.tool()
-def check_flood_risk(address: str) -> dict:
-    """Flood insurability triage for a single US street address.
-
-    Args:
-        address: A US street address, e.g. "100 Ocean Dr, Miami Beach, FL 33139".
-
-    Returns:
-        address, lat, lng, verdict, driving_factors, a ranked flood-
-        mitigation list with cost ranges, data_sources, missing_inputs,
-        disclaimer, a plain-English narration, and parcel_boundary_geojson
-        + parcel_apn for mapping. Verdict is driven by whether the parcel
-        is inside a FEMA Special Flood Hazard Area (SFHA) — the NFIP's
-        mandatory flood-insurance-purchase trigger for federally-backed
-        mortgages, not a California-only concept.
-    """
-    return _tool_check_flood_risk(address)
-
-
-@mcp.tool()
-def check_earthquake_risk(address: str) -> dict:
-    """Earthquake insurability triage for a single US street address.
-
-    Args:
-        address: A US street address, e.g. "100 Ocean Dr, Miami Beach, FL 33139".
-
-    Returns:
-        address, lat, lng, verdict, driving_factors, a ranked seismic-
-        retrofit mitigation list with cost ranges, data_sources,
-        missing_inputs, disclaimer, a plain-English narration, and
-        parcel_boundary_geojson + parcel_apn for mapping. Verdict is
-        driven by ASCE 7-22 Seismic Design Category (A-F) at the parcel —
-        a building-code classification, not an insurance-purchase mandate
-        (California has no legal requirement to carry earthquake coverage).
-    """
-    return _tool_check_earthquake_risk(address)
-
-
 # Verdict severity, most to least concerning — drives compare_addresses'
 # ranking. out_of_scope/low_confidence aren't "low risk", they're "no
 # answer" — sorted last, not treated as good news.
@@ -466,24 +392,6 @@ def _tool_compare_addresses(addresses: list[str]) -> dict:
     }
 
 
-@mcp.tool()
-def compare_addresses(addresses: list[str]) -> dict:
-    """Check and rank multiple California addresses by wildfire
-    insurability risk — same underlying check as check_insurability, run
-    across a list. Use for "compare these addresses" or "scan my listing
-    book" requests; use check_insurability for a single address in depth.
-
-    Args:
-        addresses: A list of US street addresses (2 or more).
-
-    Returns:
-        results (one summary entry per address: verdict, top driving
-        factor, cheapest mitigation, lat/lng), ranked_by, summary, and a
-        disclaimer.
-    """
-    return _tool_compare_addresses(addresses)
-
-
 def _tool_full_risk_report(address: str) -> dict:
     """Runs all three hazard sub-agents (wildfire, flood, earthquake) for
     one address and combines them into a single report. Each sub-agent
@@ -539,26 +447,6 @@ def _tool_full_risk_report(address: str) -> dict:
     }
 
 
-@mcp.tool()
-def full_risk_report(address: str) -> dict:
-    """Combined multi-hazard property risk report for a single US street
-    address — runs the wildfire, flood, and earthquake sub-agents and
-    returns one overall verdict plus each hazard's own verdict and top
-    driving factor. Use this instead of calling check_insurability,
-    check_flood_risk, and check_earthquake_risk separately when the user
-    wants the full picture on a property rather than one specific hazard.
-
-    Args:
-        address: A US street address.
-
-    Returns:
-        address, lat, lng, overall_verdict (the worst of the three
-        per-hazard verdicts), hazards (one entry per hazard: verdict, top
-        driving factor, narration), summary, and a disclaimer.
-    """
-    return _tool_full_risk_report(address)
-
-
 def _tool_ask_about_location(address: str, question: str) -> dict:
     """Answers a question about a location that's OUTSIDE what the three
     hazard scorers cover (schools, demographics, nearby amenities, etc.)
@@ -586,28 +474,3 @@ def _tool_ask_about_location(address: str, question: str) -> dict:
         "citations": result.get("citations", []),
         "data_gaps": result.get("data_gaps", []),
     }
-
-
-@mcp.tool()
-def ask_about_location(address: str, question: str) -> dict:
-    """Answers an open-ended question about a US address that is NOT about
-    wildfire, flood, or earthquake insurability risk (e.g. schools,
-    demographics, nearby amenities). Do not use this for anything that
-    should inform a hazard verdict — use check_insurability,
-    check_flood_risk, check_earthquake_risk, or full_risk_report for that;
-    this tool's answer is separate, citation-backed context, never a
-    scoring input.
-
-    Args:
-        address: A US street address.
-        question: The open-ended question to ask about that location.
-
-    Returns:
-        answer, confidence, citations (source + fields used), and
-        data_gaps (what the question asked for that Mireye doesn't have).
-    """
-    return _tool_ask_about_location(address, question)
-
-
-if __name__ == "__main__":
-    mcp.run()

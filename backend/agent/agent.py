@@ -3,9 +3,9 @@
 This is the actual agent: Claude reasons about what the user is asking,
 decides which tool (if any) it needs, decides what arguments to pass, and
 decides how to present the result — real tool-use decisions, not a fixed
-script. It reuses the exact same backend as the MCP tools
-(mcp_server/server.py) — the scorer, Mireye client, and data files are not
-duplicated, just driven from a different front door.
+script. Its tools (tools/hazard_tools.py) are plain Python functions it
+calls directly — the scorer, Mireye client, and data files are not
+duplicated, just driven from a different front door than the CLI.
 
 Three hazard sub-agents, each its own (Mireye preset, deterministic rule
 table, mitigation list) triple, plus three tools that use them:
@@ -29,9 +29,9 @@ table, mitigation list) triple, plus three tools that use them:
   etc.), via Mireye's /v1/ask. Deliberately separate: its answer has its
   own citations and must never feed a verdict.
 
-Self-contained on purpose: a judge can run this directly without needing
-their own MCP-capable client connected (the one demo-logistics risk
-flagged against Approach C when it was just a bare MCP tool).
+Self-contained on purpose: runnable directly with no external client or
+server process needed (the demo-logistics risk flagged against Approach C
+when this was just a bare MCP tool).
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ load_dotenv()
 
 import anthropic  # noqa: E402
 
-from mcp_server.server import (  # noqa: E402
+from tools.hazard_tools import (  # noqa: E402
     _tool_ask_about_location,
     _tool_check_earthquake_risk,
     _tool_check_flood_risk,
@@ -320,8 +320,7 @@ TOOLS = [
 class InsurabilityAgent:
     """A minimal tool-use agent loop. No agent framework (LangGraph, etc.)
     — a plain Anthropic tool-use loop is enough here and keeps the
-    dependency surface small (same "boring by default" call as Premise 8,
-    just applied to our own driver instead of an external MCP host)."""
+    dependency surface small (Premise 8: "boring by default")."""
 
     MAX_TOOL_TURNS = 6
 

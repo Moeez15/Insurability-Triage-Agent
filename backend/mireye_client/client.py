@@ -8,7 +8,7 @@ retryable flag that the scorer's fallback logic depends on directly.
 Every network call is wrapped so a real outage (DNS failure, connection
 refused, a timeout with no response at all) surfaces as MireyeRetryableError
 just like a 5xx/429 does — that's what lets the demo-cache fallback in
-mcp_server/server.py actually trigger on "the live API is down," not just
+tools/hazard_tools.py actually trigger on "the live API is down," not just
 on "the live API returned an error status."
 """
 

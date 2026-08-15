@@ -89,10 +89,10 @@ class _FakeTextBlock:
 def test_agent_loop_calls_real_tool_then_returns_text(monkeypatch):
     """Fakes only the Anthropic API call — everything downstream (the tool
     call into _tool_check_insurability, scorer, mireye_client mocking) is
-    the real code path, same as tests/test_mcp_server.py."""
+    the real code path, same as tests/test_hazard_tools.py."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
-    import mcp_server.server as server_mod
+    import tools.hazard_tools as tools_mod
     from mireye_client.client import GeocodeResult
 
     class FakeMireyeClient:
@@ -108,7 +108,7 @@ def test_agent_loop_calls_real_tool_then_returns_text(monkeypatch):
         def fetch_with_retry(self, lat, lng, preset, max_retries=1):
             return PARADISE_CA_FETCH
 
-    monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeMireyeClient())
+    monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeMireyeClient())
 
     responses = iter(
         [
@@ -142,7 +142,7 @@ def test_agent_dispatches_compare_addresses_tool(monkeypatch):
     generalized-dispatch path added alongside the second tool."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
-    import mcp_server.server as server_mod
+    import tools.hazard_tools as tools_mod
     from mireye_client.client import GeocodeResult
 
     fixtures = {
@@ -167,7 +167,7 @@ def test_agent_dispatches_compare_addresses_tool(monkeypatch):
                     return data
             raise AssertionError("unexpected lat/lng in test")
 
-    monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeMireyeClient())
+    monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeMireyeClient())
 
     responses = iter(
         [
@@ -209,7 +209,7 @@ def test_agent_dispatches_ask_about_location_tool(monkeypatch):
     stay separate at the dispatch level, not just in the system prompt."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
-    import mcp_server.server as server_mod
+    import tools.hazard_tools as tools_mod
 
     class FakeMireyeClient:
         def __enter__(self):
@@ -226,7 +226,7 @@ def test_agent_dispatches_ask_about_location_tool(monkeypatch):
                 "data_gaps": [],
             }
 
-    monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeMireyeClient())
+    monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeMireyeClient())
 
     responses = iter(
         [
@@ -268,7 +268,7 @@ def test_agent_dispatches_check_flood_risk_tool(monkeypatch):
     guard that keeps each hazard sub-agent's own rule table in play."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
-    import mcp_server.server as server_mod
+    import tools.hazard_tools as tools_mod
     from mireye_client.client import GeocodeResult
 
     class FakeMireyeClient:
@@ -288,7 +288,7 @@ def test_agent_dispatches_check_flood_risk_tool(monkeypatch):
         def lookup_parcel(self, address):
             return None
 
-    monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeMireyeClient())
+    monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeMireyeClient())
 
     responses = iter(
         [
@@ -327,7 +327,7 @@ def test_agent_dispatches_full_risk_report_tool(monkeypatch):
     the multi-hazard "sub-agents doing other tasks" delegation path."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
-    import mcp_server.server as server_mod
+    import tools.hazard_tools as tools_mod
     from mireye_client.client import GeocodeResult
 
     class FakeMireyeClient:
@@ -354,7 +354,7 @@ def test_agent_dispatches_full_risk_report_tool(monkeypatch):
         def lookup_parcel(self, address):
             return None
 
-    monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeMireyeClient())
+    monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeMireyeClient())
 
     responses = iter(
         [
@@ -400,7 +400,7 @@ def test_max_tool_turns_cap_prevents_infinite_loop(monkeypatch):
     to a clear message instead of hanging."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
-    import mcp_server.server as server_mod
+    import tools.hazard_tools as tools_mod
     from mireye_client.client import GeocodeResult
 
     class FakeMireyeClient:
@@ -416,7 +416,7 @@ def test_max_tool_turns_cap_prevents_infinite_loop(monkeypatch):
         def fetch_with_retry(self, lat, lng, preset, max_retries=1):
             return PARADISE_CA_FETCH
 
-    monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeMireyeClient())
+    monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeMireyeClient())
 
     call_count = 0
 
@@ -472,7 +472,7 @@ def test_history_rollback_allows_retry_after_failure(monkeypatch):
     proves the rollback didn't leave the conversation history corrupted."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
-    import mcp_server.server as server_mod
+    import tools.hazard_tools as tools_mod
     from mireye_client.client import GeocodeResult
 
     class FakeMireyeClient:
@@ -488,7 +488,7 @@ def test_history_rollback_allows_retry_after_failure(monkeypatch):
         def fetch_with_retry(self, lat, lng, preset, max_retries=1):
             return PARADISE_CA_FETCH
 
-    monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeMireyeClient())
+    monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeMireyeClient())
 
     responses = iter(
         [

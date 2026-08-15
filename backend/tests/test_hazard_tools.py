@@ -1,7 +1,7 @@
 import pytest
 
-from mcp_server.narrate import narrate
-from mcp_server.server import (
+from tools.narrate import narrate
+from tools.hazard_tools import (
     _resolve_and_fetch,
     _tool_ask_about_location,
     _tool_check_earthquake_risk,
@@ -47,7 +47,7 @@ class TestDemoCacheFallback:
             raise MireyeRetryableError("simulated live outage")
 
         # Patch the live path to always fail, forcing the cache path.
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         class FakeClient:
             def __enter__(self):
@@ -59,7 +59,7 @@ class TestDemoCacheFallback:
             def geocode(self, address):
                 raise MireyeRetryableError("simulated live outage")
 
-        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeClient())
 
         fetch_response, source, lat, lng = _resolve_and_fetch("5555 Skyway, Paradise, CA 95969")
         assert source == "demo_cache"
@@ -70,7 +70,7 @@ class TestDemoCacheFallback:
 
 class TestCheckInsurabilityTool:
     def test_end_to_end_with_mocked_live_client(self, monkeypatch):
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         class FakeClient:
             def __enter__(self):
@@ -113,7 +113,7 @@ class TestCheckInsurabilityTool:
                     "destination_accuracy": 0.88,
                 }
 
-        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeClient())
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
         result = _tool_check_insurability("5555 Skyway, Paradise, CA 95969")
@@ -131,7 +131,7 @@ class TestCheckInsurabilityTool:
         assert any("fire station" in f.lower() for f in result["driving_factors"])
 
     def test_counterfactual_overrides_flow_through(self, monkeypatch):
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         class FakeClient:
             def __enter__(self):
@@ -146,7 +146,7 @@ class TestCheckInsurabilityTool:
             def fetch_with_retry(self, lat, lng, preset, max_retries=1):
                 return PARADISE_CA_FETCH
 
-        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeClient())
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
         # _enrich=False: this test is about override logic, not enrichment
@@ -169,7 +169,7 @@ class TestCompareAddresses:
     }
 
     def _patch_multi_address_client(self, monkeypatch):
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         fixtures = self.ADDRESS_FIXTURES
 
@@ -190,7 +190,7 @@ class TestCompareAddresses:
                         return data
                 raise AssertionError("unexpected lat/lng in test")
 
-        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeClient())
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
     def test_ranks_most_severe_first(self, monkeypatch):
@@ -224,7 +224,7 @@ class TestCompareAddresses:
 
 class TestCheckFloodRiskTool:
     def test_end_to_end_with_mocked_live_client(self, monkeypatch):
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         class FakeClient:
             def __enter__(self):
@@ -250,7 +250,7 @@ class TestCheckFloodRiskTool:
             def lookup_parcel(self, address):
                 return None
 
-        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeClient())
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
         result = _tool_check_flood_risk("100 Ocean Dr, Miami Beach, FL 33139")
@@ -261,7 +261,7 @@ class TestCheckFloodRiskTool:
         assert "fire_station" not in result
 
     def test_outside_sfha_is_likely_insurable(self, monkeypatch):
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         class FakeClient:
             def __enter__(self):
@@ -282,7 +282,7 @@ class TestCheckFloodRiskTool:
             def lookup_parcel(self, address):
                 return None
 
-        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeClient())
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
         result = _tool_check_flood_risk("16209 Main St, Guerneville, CA 95446")
@@ -291,7 +291,7 @@ class TestCheckFloodRiskTool:
 
 class TestCheckEarthquakeRiskTool:
     def test_end_to_end_with_mocked_live_client(self, monkeypatch):
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         class FakeClient:
             def __enter__(self):
@@ -313,7 +313,7 @@ class TestCheckEarthquakeRiskTool:
             def lookup_parcel(self, address):
                 return None
 
-        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeClient())
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
         result = _tool_check_earthquake_risk("5555 Skyway, Paradise, CA 95969")
@@ -326,7 +326,7 @@ class TestCheckEarthquakeRiskTool:
 
 class TestFullRiskReportTool:
     def _patch_all_three(self, monkeypatch, wildfire_verdict, flood_verdict, earthquake_verdict):
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         def fake_result(verdict, driving_factor):
             return {
@@ -338,15 +338,15 @@ class TestFullRiskReportTool:
             }
 
         monkeypatch.setattr(
-            server_mod, "_tool_check_insurability",
+            tools_mod, "_tool_check_insurability",
             lambda address, _enrich=True: fake_result(wildfire_verdict, "wildfire factor"),
         )
         monkeypatch.setattr(
-            server_mod, "_tool_check_flood_risk",
+            tools_mod, "_tool_check_flood_risk",
             lambda address, _enrich=True: fake_result(flood_verdict, "flood factor"),
         )
         monkeypatch.setattr(
-            server_mod, "_tool_check_earthquake_risk",
+            tools_mod, "_tool_check_earthquake_risk",
             lambda address, _enrich=True: fake_result(earthquake_verdict, "earthquake factor"),
         )
 
@@ -398,7 +398,7 @@ class TestFullRiskReportTool:
 
 class TestAskAboutLocation:
     def test_success(self, monkeypatch):
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         class FakeClient:
             def __enter__(self):
@@ -415,7 +415,7 @@ class TestAskAboutLocation:
                     "data_gaps": [],
                 }
 
-        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeClient())
 
         result = _tool_ask_about_location(
             "5555 Skyway, Paradise, CA 95969", "Is this in a flood zone?"
@@ -425,7 +425,7 @@ class TestAskAboutLocation:
         assert result["citations"]
 
     def test_failure_degrades_gracefully(self, monkeypatch):
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         class FakeClient:
             def __enter__(self):
@@ -437,7 +437,7 @@ class TestAskAboutLocation:
             def ask(self, address, question):
                 return None
 
-        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeClient())
 
         result = _tool_ask_about_location("5555 Skyway, Paradise, CA 95969", "anything?")
         assert result["confidence"] is None
@@ -447,7 +447,7 @@ class TestAskAboutLocation:
         """ask_about_location's result shape must not resemble
         check_insurability's — this is the structural guard against the
         agent ever mistaking one for the other's grounding path."""
-        import mcp_server.server as server_mod
+        import tools.hazard_tools as tools_mod
 
         class FakeClient:
             def __enter__(self):
@@ -459,7 +459,7 @@ class TestAskAboutLocation:
             def ask(self, address, question):
                 return {"answer": "x", "confidence": "low", "citations": [], "data_gaps": []}
 
-        monkeypatch.setattr(server_mod, "MireyeClient", lambda: FakeClient())
+        monkeypatch.setattr(tools_mod, "MireyeClient", lambda: FakeClient())
 
         result = _tool_ask_about_location("5555 Skyway, Paradise, CA 95969", "anything?")
         assert "verdict" not in result

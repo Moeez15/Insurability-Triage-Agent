@@ -1,8 +1,8 @@
 """Deterministic scorer: Mireye fields -> structured verdict.
 
 No LLM involved here (verdict pipeline split, Approach A) — reproducible
-and auditable. `mcp_server/narrate.py` turns this module's output into
-plain English and must never introduce a factor this module didn't emit.
+and auditable. `tools/narrate.py` turns this module's output into plain
+English and must never introduce a factor this module didn't emit.
 """
 
 from __future__ import annotations
