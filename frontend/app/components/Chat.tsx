@@ -106,24 +106,31 @@ export default function Chat() {
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
-        <div className="mx-auto flex max-w-2xl flex-col gap-4">
-          {messages.length === 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Try one of these, or type your own:
+        {messages.length === 0 ? (
+          <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center gap-4 text-center">
+            <div>
+              <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">
+                Check a California address
+              </h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Ask about wildfire insurability risk, mitigation costs, or
+                compare a few listings at once.
               </p>
+            </div>
+            <div className="flex w-full flex-col gap-2">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
                   onClick={() => send(s)}
-                  className="flex min-h-11 w-fit items-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left text-sm text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700"
+                  className="flex min-h-11 w-full items-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left text-sm text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700"
                 >
                   {s}
                 </button>
               ))}
             </div>
-          )}
-
+          </div>
+        ) : (
+        <div className="mx-auto flex max-w-2xl flex-col gap-4">
           {messages.map((m, i) => {
             const points = m.role === "assistant" ? mapPointsFor(m.toolCalls) : [];
             const parcelBoundary = m.role === "assistant" ? parcelBoundaryFor(m.toolCalls) : null;
@@ -171,6 +178,7 @@ export default function Chat() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       <form
